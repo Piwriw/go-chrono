@@ -1,0 +1,79 @@
+# See the dedicated "version" documentation section.
+version: "2"
+run:
+  timeout: 5m
+  allow-parallel-runners: true  # 允许并行执行，提高速度
+  modules-download-mode: readonly
+
+linters:
+  exclusions:
+    paths:
+      - ".*_test\\.go$"
+  enable:
+    - errcheck # 错误检查
+    - gocyclo # 巡检依赖
+    - gofmt
+    - goimports
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+    - bodyclose # body close
+    - goconst # 常量检查
+    - ineffassign # 无效赋值检查
+    - whitespace # 检查代码中的空格
+    - errname # 错误命名检查
+  disable:
+    - lll  # 关闭 `lll` 以避免长行限制
+    - unused # 关闭 `unused` 以避免未使用变量的检查
+formatters:
+  # Enable specific formatter.
+  # Default: [] (uses standard Go formatting)
+  enable:
+    - gci # 检查代码和导入语句是否格式化以及其他规则
+    - gofmt # 代码格式化
+    - gofumpt # gofmt 的增强版，更严格的格式化
+    - goimports # 自动管理 import，添加/删除/排序
+    - golines # 自动换行，防止代码行过长
+  settings:
+    golines:
+      # Target maximum line length.
+      # Default: 100
+      # 目标最大行长度，超过这个长度的行会被自动换行
+      max-len: 200
+      # Length of a tabulation.
+      # Default: 4
+      # 制表符（tab）的长度，影响缩进
+      tab-len: 8
+      # Shorten single-line comments.
+      # Default: false
+      # 是否缩短单行注释（`//` 之后的内容），让它更紧凑
+      shorten-comments: false
+      # Default: true
+      # 是否格式化 struct tag
+      reformat-tags: true
+      # Split chained methods on the dots as opposed to the arguments.
+      # Default: true
+      # 是否在 **`.` 处换行**（方法链换行方式）
+      chain-split-dots: true
+    gofmt:
+      # Simplify code: gofmt with `-s` option.
+      # Default: true
+      simplify: false
+      # Apply the rewrite rules to the source before reformatting.
+      # https://pkg.go.dev/cmd/gofmt
+      # Default: []
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'
+        - pattern: 'a[b:len(a)]'
+          replacement: 'a[b:]'
+        - pattern: 'var ([a-zA-Z0-9_]+) = (.+)'
+          replacement: '\1 := \2'
+        - pattern: 'fmt.Sprintf\\("(.+?)", (.+?)\\)'
+          replacement: 'strings.ReplaceAll("\1", "\2")'
+        - pattern: '(\\w+)\\+\\+'
+          replacement: '\1 += 1'
+issues:
+  max-issues-per-linter: 100
+  max-same-issues: 10
