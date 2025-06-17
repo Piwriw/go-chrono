@@ -11,39 +11,61 @@ import (
 	"github.com/google/uuid"
 )
 
+// IntervalJob represents a job that runs at a fixed interval.
+// IntervalJob 表示一个按固定时间间隔运行的任务。
 type IntervalJob struct {
-	ID         string
-	Ali        string
-	Name       string
-	Interval   time.Duration
-	TaskFunc   any
-	Parameters []any
-	Hooks      []gocron.EventListener
-	WatchFunc  func(event JobWatchInterface)
-	timeout    time.Duration
-	err        error
+	ID string // Unique identifier for the job
+	// 任务的唯一标识符
+	Ali string // Alias for the job
+	// 任务的别名
+	Name string // Name of the job
+	// 任务名称
+	Interval time.Duration // Interval duration between job runs
+	// 任务运行的时间间隔
+	TaskFunc any // The function to execute as the job
+	// 作为任务执行的函数
+	Parameters []any // Parameters to pass to the task function
+	// 传递给任务函数的参数
+	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	// 任务生命周期事件的钩子
+	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	// 监听任务事件的函数
+	timeout time.Duration // Timeout for the job execution
+	// 任务执行的超时时间
+	err error // Error state for the job
+	// 任务的错误状态
 }
 
+// NewIntervalJob creates a new IntervalJob with the specified interval.
+// NewIntervalJob 创建一个具有指定时间间隔的 IntervalJob。
 func NewIntervalJob(interval time.Duration) *IntervalJob {
 	return &IntervalJob{
 		Interval: interval,
 	}
 }
 
+// Error returns the error message associated with the IntervalJob, if any.
+// Error 返回与 IntervalJob 相关的错误信息（如果有）。
 func (c *IntervalJob) Error() string {
 	return c.err.Error()
 }
 
+// Alias sets the alias for the IntervalJob.
+// Alias 设置 IntervalJob 的别名。
 func (c *IntervalJob) Alias(alias string) *IntervalJob {
 	c.Ali = alias
 	return c
 }
 
+// JobID sets the unique identifier for the IntervalJob.
+// JobID 设置 IntervalJob 的唯一标识符。
 func (c *IntervalJob) JobID(id string) *IntervalJob {
 	c.ID = id
 	return c
 }
 
+// Names sets the name for the IntervalJob. If name is empty, a UUID is generated.
+// Names 设置 IntervalJob 的名称。如果名称为空，则生成一个 UUID。
 func (c *IntervalJob) Names(name string) *IntervalJob {
 	if name == "" {
 		name = uuid.New().String()
@@ -52,6 +74,8 @@ func (c *IntervalJob) Names(name string) *IntervalJob {
 	return c
 }
 
+// Timeout sets the timeout duration for the IntervalJob execution.
+// Timeout 设置 IntervalJob 执行的超时时间。
 func (c *IntervalJob) Timeout(timeout time.Duration) *IntervalJob {
 	if timeout <= 0 {
 		c.err = errors.Join(c.err, ErrValidateTimeout)
@@ -61,6 +85,9 @@ func (c *IntervalJob) Timeout(timeout time.Duration) *IntervalJob {
 	return c
 }
 
+// Task sets the task function and its parameters for the IntervalJob.
+// It wraps the task with error and timeout handling.
+// Task 设置 IntervalJob 的任务函数及其参数，并包装错误和超时处理。
 func (c *IntervalJob) Task(task any, parameters ...any) *IntervalJob {
 	if task == nil {
 		c.err = errors.Join(c.err, ErrTaskFuncNil)
@@ -104,11 +131,15 @@ func (c *IntervalJob) Task(task any, parameters ...any) *IntervalJob {
 	return c
 }
 
+// Watch sets a watcher function for job events.
+// Watch 设置任务事件的监听函数。
 func (c *IntervalJob) Watch(watch func(event JobWatchInterface)) *IntervalJob {
 	c.WatchFunc = watch
 	return c
 }
 
+// addHooks adds one or more event listeners (hooks) to the IntervalJob.
+// addHooks 向 IntervalJob 添加一个或多个事件监听器（钩子）。
 func (c *IntervalJob) addHooks(hook ...gocron.EventListener) *IntervalJob {
 	if c.Hooks == nil {
 		c.Hooks = make([]gocron.EventListener, 0)
@@ -117,6 +148,8 @@ func (c *IntervalJob) addHooks(hook ...gocron.EventListener) *IntervalJob {
 	return c
 }
 
+// DefaultHooks adds a set of default event listeners to the IntervalJob.
+// DefaultHooks 向 IntervalJob 添加一组默认事件监听器。
 func (c *IntervalJob) DefaultHooks() *IntervalJob {
 	return c.addHooks(
 		gocron.BeforeJobRuns(defaultBeforeJobRuns),
@@ -127,32 +160,38 @@ func (c *IntervalJob) DefaultHooks() *IntervalJob {
 		gocron.AfterLockError(defaultAfterLockError))
 }
 
-// BeforeJobRuns 添加任务运行前的钩子函数
+// BeforeJobRuns adds a hook to be called before the job runs.
+// BeforeJobRuns 添加一个在任务运行前调用的钩子。
 func (c *IntervalJob) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob {
 	return c.addHooks(gocron.BeforeJobRuns(eventListenerFunc))
 }
 
-// BeforeJobRunsSkipIfBeforeFuncErrors 添加任务运行前的钩子函数（如果前置函数出错则跳过）
+// BeforeJobRunsSkipIfBeforeFuncErrors adds a hook to be called before the job runs, skipping if the hook returns an error.
+// BeforeJobRunsSkipIfBeforeFuncErrors 添加一个在任务运行前调用的钩子，如果钩子返回错误则跳过。
 func (c *IntervalJob) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *IntervalJob {
 	return c.addHooks(gocron.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc))
 }
 
-// AfterJobRuns 添加任务运行后的钩子函数
+// AfterJobRuns adds a hook to be called after the job runs.
+// AfterJobRuns 添加一个在任务运行后调用的钩子。
 func (c *IntervalJob) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob {
 	return c.addHooks(gocron.AfterJobRuns(eventListenerFunc))
 }
 
-// AfterJobRunsWithError 添加任务运行出错时的钩子函数
+// AfterJobRunsWithError adds a hook to be called after the job runs with an error.
+// AfterJobRunsWithError 添加一个在任务运行出错后调用的钩子。
 func (c *IntervalJob) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob {
 	return c.addHooks(gocron.AfterJobRunsWithError(eventListenerFunc))
 }
 
-// AfterJobRunsWithPanic 添加任务运行发生 panic 时的钩子函数
+// AfterJobRunsWithPanic adds a hook to be called after the job panics.
+// AfterJobRunsWithPanic 添加一个在任务发生 panic 后调用的钩子。
 func (c *IntervalJob) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *IntervalJob {
 	return c.addHooks(gocron.AfterJobRunsWithPanic(eventListenerFunc))
 }
 
-// AfterLockError 添加任务加锁出错时的钩子函数
+// AfterLockError adds a hook to be called when a lock error occurs during job execution.
+// AfterLockError 添加一个在任务加锁出错时调用的钩子。
 func (c *IntervalJob) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob {
 	return c.addHooks(gocron.AfterLockError(eventListenerFunc))
 }

@@ -9,45 +9,61 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	DayTimeType   string = "%d %d * * * "
-	WeekTimeType  string = "%d %d * * %d "
-	MonthTimeType string = "%d %d * %d * "
-)
-
+// CronJob represents a job that runs based on a cron expression.
+// CronJob 表示一个基于 cron 表达式运行的任务。
 type CronJob struct {
-	ID         string
-	Ali        string
-	Name       string
-	Expr       string
-	TaskFunc   any
-	Parameters []any
-	Hooks      []gocron.EventListener
-	WatchFunc  func(event JobWatchInterface)
-	timeout    time.Duration
-	err        error
+	ID string // Unique identifier for the job
+	// 任务的唯一标识符
+	Ali string // Alias for the job
+	// 任务的别名
+	Name string // Name of the job
+	// 任务名称
+	Expr string // Cron expression for scheduling
+	// 用于调度的 cron 表达式
+	TaskFunc any // The function to execute as the job
+	// 作为任务执行的函数
+	Parameters []any // Parameters to pass to the task function
+	// 传递给任务函数的参数
+	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	// 任务生命周期事件的钩子
+	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	// 监听任务事件的函数
+	timeout time.Duration // Timeout for the job execution
+	// 任务执行的超时时间
+	err error // Error state for the job
+	// 任务的错误状态
 }
 
+// NewCronJob creates a new CronJob with the specified cron expression.
+// NewCronJob 创建一个具有指定 cron 表达式的 CronJob。
 func NewCronJob(expr string) *CronJob {
 	return &CronJob{
 		Expr: expr,
 	}
 }
 
+// Error returns the error message associated with the CronJob, if any.
+// Error 返回与 CronJob 相关的错误信息（如果有）。
 func (c *CronJob) Error() string {
 	return c.err.Error()
 }
 
+// Alias sets the alias for the CronJob.
+// Alias 设置 CronJob 的别名。
 func (c *CronJob) Alias(alias string) *CronJob {
 	c.Ali = alias
 	return c
 }
 
+// JobID sets the unique identifier for the CronJob.
+// JobID 设置 CronJob 的唯一标识符。
 func (c *CronJob) JobID(id string) *CronJob {
 	c.ID = id
 	return c
 }
 
+// Names sets the name for the CronJob. If name is empty, a UUID is generated.
+// Names 设置 CronJob 的名称。如果名称为空，则生成一个 UUID。
 func (c *CronJob) Names(name string) *CronJob {
 	if name == "" {
 		name = uuid.New().String()
@@ -56,6 +72,8 @@ func (c *CronJob) Names(name string) *CronJob {
 	return c
 }
 
+// Task sets the task function and its parameters for the CronJob.
+// Task 设置 CronJob 的任务函数及其参数。
 func (c *CronJob) Task(task any, parameters ...any) *CronJob {
 	if task == nil {
 		c.err = errors.Join(c.err, ErrTaskFuncNil)
@@ -65,6 +83,8 @@ func (c *CronJob) Task(task any, parameters ...any) *CronJob {
 	return c
 }
 
+// Timeout sets the timeout duration for the CronJob execution.
+// Timeout 设置 CronJob 执行的超时时间。
 func (c *CronJob) Timeout(timeout time.Duration) *CronJob {
 	if timeout <= 0 {
 		c.err = errors.Join(c.err, ErrValidateTimeout)
@@ -74,11 +94,15 @@ func (c *CronJob) Timeout(timeout time.Duration) *CronJob {
 	return c
 }
 
+// Watch sets a watcher function for job events.
+// Watch 设置任务事件的监听函数。
 func (c *CronJob) Watch(watch func(event JobWatchInterface)) *CronJob {
 	c.WatchFunc = watch
 	return c
 }
 
+// addHooks adds one or more event listeners (hooks) to the CronJob.
+// addHooks 向 CronJob 添加一个或多个事件监听器（钩子）。
 func (c *CronJob) addHooks(hook ...gocron.EventListener) *CronJob {
 	if c.Hooks == nil {
 		c.Hooks = make([]gocron.EventListener, 0)
@@ -87,6 +111,8 @@ func (c *CronJob) addHooks(hook ...gocron.EventListener) *CronJob {
 	return c
 }
 
+// DefaultHooks adds a set of default event listeners to the CronJob.
+// DefaultHooks 向 CronJob 添加一组默认事件监听器。
 func (c *CronJob) DefaultHooks() *CronJob {
 	return c.addHooks(
 		gocron.BeforeJobRuns(defaultBeforeJobRuns),
@@ -97,39 +123,54 @@ func (c *CronJob) DefaultHooks() *CronJob {
 		gocron.AfterLockError(defaultAfterLockError))
 }
 
-// BeforeJobRuns 添加任务运行前的钩子函数
+// BeforeJobRuns adds a hook to be called before the job runs.
+// BeforeJobRuns 添加一个在任务运行前调用的钩子。
 func (c *CronJob) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
 	return c.addHooks(gocron.BeforeJobRuns(eventListenerFunc))
 }
 
-// BeforeJobRunsSkipIfBeforeFuncErrors 添加任务运行前的钩子函数（如果前置函数出错则跳过）
+// BeforeJobRunsSkipIfBeforeFuncErrors adds a hook to be called before the job runs, skipping if the hook returns an error.
+// BeforeJobRunsSkipIfBeforeFuncErrors 添加一个在任务运行前调用的钩子，如果钩子返回错误则跳过。
 func (c *CronJob) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *CronJob {
 	return c.addHooks(gocron.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc))
 }
 
-// AfterJobRuns 添加任务运行后的钩子函数
+// AfterJobRuns adds a hook to be called after the job runs.
+// AfterJobRuns 添加一个在任务运行后调用的钩子。
 func (c *CronJob) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
 	return c.addHooks(gocron.AfterJobRuns(eventListenerFunc))
 }
 
-// AfterJobRunsWithError 添加任务运行出错时的钩子函数
+// AfterJobRunsWithError adds a hook to be called after the job runs with an error.
+// AfterJobRunsWithError 添加一个在任务运行出错后调用的钩子。
 func (c *CronJob) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
 	return c.addHooks(gocron.AfterJobRunsWithError(eventListenerFunc))
 }
 
-// AfterJobRunsWithPanic 添加任务运行发生 panic 时的钩子函数
+// AfterJobRunsWithPanic adds a hook to be called after the job panics.
+// AfterJobRunsWithPanic 添加一个在任务发生 panic 后调用的钩子。
 func (c *CronJob) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *CronJob {
 	return c.addHooks(gocron.AfterJobRunsWithPanic(eventListenerFunc))
 }
 
-// AfterLockError 添加任务加锁出错时的钩子函数
+// AfterLockError adds a hook to be called when a lock error occurs during job execution.
+// AfterLockError 添加一个在任务加锁出错时调用的钩子。
 func (c *CronJob) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
 	return c.addHooks(gocron.AfterLockError(eventListenerFunc))
 }
 
 type TimeType string
 
-// DayTimeToCron 将 time.Time 转换为 Cron 表达式
+// DayTimeType is the cron format for daily jobs.
+// DayTimeType 是每日任务的 cron 格式。
+const (
+	DayTimeType   string = "%d %d * * * "
+	WeekTimeType  string = "%d %d * * %d "
+	MonthTimeType string = "%d %d * %d * "
+)
+
+// DayTimeToCron converts a time.Time to a daily cron expression.
+// DayTimeToCron 将 time.Time 转换为每日的 Cron 表达式。
 func DayTimeToCron(t time.Time) string {
 	// 提取时间字段
 	minute := t.Minute()
@@ -139,6 +180,8 @@ func DayTimeToCron(t time.Time) string {
 	return fmt.Sprintf(DayTimeType, minute, hour)
 }
 
+// WeekTimeToCron converts a time.Time and weekday to a weekly cron expression.
+// WeekTimeToCron 将 time.Time 和星期几转换为每周的 Cron 表达式。
 func WeekTimeToCron(t time.Time, week time.Weekday) string {
 	// 提取时间字段
 	minute := t.Minute()
@@ -148,6 +191,8 @@ func WeekTimeToCron(t time.Time, week time.Weekday) string {
 	return fmt.Sprintf(WeekTimeType, minute, hour, week)
 }
 
+// MonthTimeToCron converts a time.Time and month to a monthly cron expression.
+// MonthTimeToCron 将 time.Time 和月份转换为每月的 Cron 表达式。
 func MonthTimeToCron(t time.Time, month time.Month) string {
 	// 提取时间字段
 	minute := t.Minute()

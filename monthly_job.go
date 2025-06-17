@@ -11,19 +11,33 @@ import (
 	"github.com/google/uuid"
 )
 
+// MonthJob represents a job that runs on a monthly schedule.
+// MonthJob 表示一个按月调度运行的任务。
 type MonthJob struct {
-	ID             string
-	Ali            string
-	Name           string
-	Interval       uint
-	DaysOfTheMonth gocron.DaysOfTheMonth
-	AtTimes        gocron.AtTimes
-	TaskFunc       any
-	Parameters     []any
-	Hooks          []gocron.EventListener
-	WatchFunc      func(event JobWatchInterface)
-	timeout        time.Duration
-	err            error
+	ID string // Unique identifier for the job
+	// 任务的唯一标识符
+	Ali string // Alias for the job
+	// 任务的别名
+	Name string // Name of the job
+	// 任务名称
+	Interval uint // Interval in months between job runs
+	// 任务运行的月数间隔
+	DaysOfTheMonth gocron.DaysOfTheMonth // Days of the month to run the job
+	// 任务每月运行的具体日期
+	AtTimes gocron.AtTimes // Specific times of day to run the job
+	// 任务每天运行的具体时间点
+	TaskFunc any // The function to execute as the job
+	// 作为任务执行的函数
+	Parameters []any // Parameters to pass to the task function
+	// 传递给任务函数的参数
+	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	// 任务生命周期事件的钩子
+	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	// 监听任务事件的函数
+	timeout time.Duration // Timeout for the job execution
+	// 任务执行的超时时间
+	err error // Error state for the job
+	// 任务的错误状态
 }
 
 func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTimes) *MonthJob {
@@ -34,6 +48,8 @@ func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTime
 	}
 }
 
+// NewMonthJobAtTime creates a new MonthJob that runs at specific days and times every month.
+// NewMonthJobAtTime 创建一个每月在特定日期和时间运行的 MonthJob。
 func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 	if len(days) == 0 {
 		err := errors.New("chrono:at time must have at least one day")
@@ -48,20 +64,28 @@ func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 	}
 }
 
+// Error returns the error message associated with the MonthJob, if any.
+// Error 返回与 MonthJob 相关的错误信息（如果有）。
 func (c *MonthJob) Error() string {
 	return c.err.Error()
 }
 
+// Alias sets the alias for the MonthJob.
+// Alias 设置 MonthJob 的别名。
 func (c *MonthJob) Alias(alias string) *MonthJob {
 	c.Ali = alias
 	return c
 }
 
+// JobID sets the unique identifier for the MonthJob.
+// JobID 设置 MonthJob 的唯一标识符。
 func (c *MonthJob) JobID(id string) *MonthJob {
 	c.ID = id
 	return c
 }
 
+// Names sets the name for the MonthJob. If name is empty, a UUID is generated.
+// Names 设置 MonthJob 的名称。如果名称为空，则生成一个 UUID。
 func (c *MonthJob) Names(name string) *MonthJob {
 	if name == "" {
 		name = uuid.New().String()
@@ -70,6 +94,9 @@ func (c *MonthJob) Names(name string) *MonthJob {
 	return c
 }
 
+// Task sets the task function and its parameters for the MonthJob.
+// It wraps the task with error and timeout handling.
+// Task 设置 MonthJob 的任务函数及其参数，并包装错误和超时处理。
 func (c *MonthJob) Task(task any, parameters ...any) *MonthJob {
 	if task == nil {
 		c.err = errors.Join(c.err, ErrTaskFuncNil)
@@ -112,6 +139,8 @@ func (c *MonthJob) Task(task any, parameters ...any) *MonthJob {
 	return c
 }
 
+// Timeout sets the timeout duration for the MonthJob execution.
+// Timeout 设置 MonthJob 执行的超时时间。
 func (c *MonthJob) Timeout(timeout time.Duration) *MonthJob {
 	if timeout <= 0 {
 		c.err = errors.Join(c.err, ErrValidateTimeout)
