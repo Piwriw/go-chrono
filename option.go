@@ -1,8 +1,9 @@
 package chrono
 
 const (
-	AliasOptionName = "alias"
-	WatchOptionName = "watch"
+	AliasOptionName  = "alias"
+	WatchOptionName  = "watch"
+	TimoutOptionName = "timeout"
 )
 
 // ChronoOption is the interface for options in chrono.

@@ -49,7 +49,7 @@ type SchedulerOptions struct {
 	// 别名选项
 	watchEnable ChronoOption // Watch option
 	// 监听选项
-	withTimeout time.Duration
+	timeout time.Duration
 }
 
 // Enable checks if a specific option is enabled.
@@ -64,6 +64,8 @@ func (s *Scheduler) Enable(option string) bool {
 		if s.schOptions.watchEnable != nil {
 			return s.schOptions.watchEnable.Enable()
 		}
+	case TimoutOptionName:
+		return s.schOptions.timeout > 0
 	}
 	return false
 }
@@ -92,7 +94,7 @@ func WithWatch(enabled bool) SchedulerOption {
 // WithTimeout 设置监听选项。
 func WithTimeout(timeout time.Duration) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.withTimeout = timeout
+		s.timeout = timeout
 	}
 }
 
@@ -581,6 +583,10 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	}
 	if job.Expr == "" {
 		return nil, fmt.Errorf("chrono:job %s has nil expr", job.Name)
+	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
