@@ -162,8 +162,12 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	if err != nil {
 		return fmt.Errorf("chrono:invalid job ID %s: %w", jobID, err)
 	}
-	s.removeAlias(jobID)
-	s.removeWatchFunc(jobID)
+	if s.Enable(AliasOptionName) {
+		s.removeAlias(jobID)
+	}
+	if s.Enable(WatchOptionName) {
+		s.removeWatchFunc(jobID)
+	}
 	slog.Info("chrono:job removed", "jobID", jobID)
 	return s.scheduler.RemoveJob(jobUUID)
 }
@@ -171,6 +175,9 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 // RemoveJobByAlias removes a job by alias.
 // RemoveJobByAlias 通过别名移除任务。
 func (s *Scheduler) RemoveJobByAlias(alias string) error {
+	if !s.Enable(AliasOptionName) {
+		return ErrDisEnableAlias
+	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
 		return fmt.Errorf("chrono:alias %s not found", alias)
@@ -180,13 +187,18 @@ func (s *Scheduler) RemoveJobByAlias(alias string) error {
 		return fmt.Errorf("chrono:invalid job ID %s: %w", jobID, err)
 	}
 	s.removeAlias(jobID)
-	s.removeWatchFunc(jobID)
+	if s.Enable(WatchOptionName) {
+		s.removeWatchFunc(jobID)
+	}
 	return s.scheduler.RemoveJob(jobUUID)
 }
 
 // GetAlias gets alias by jobID.
 // GetAlias 通过 jobID 获取别名。
 func (s *Scheduler) GetAlias(jobID string) (string, error) {
+	if !s.Enable(AliasOptionName) {
+		return "", ErrDisEnableAlias
+	}
 	for alias, realJobID := range s.aliasMap {
 		if jobID == realJobID {
 			return alias, nil
@@ -208,6 +220,9 @@ func (s *Scheduler) RunJobNow(jobID string) error {
 // RunJobNowByAlias runs a job immediately by alias.
 // RunJobNowByAlias 通过别名立即运行任务。
 func (s *Scheduler) RunJobNowByAlias(alias string) error {
+	if !s.Enable(AliasOptionName) {
+		return ErrDisEnableAlias
+	}
 	job, err := s.GetJobByAlias(alias)
 	if err != nil {
 		return err
@@ -329,6 +344,9 @@ func (s *Scheduler) GetJobs() ([]gocron.Job, error) {
 // GetJobLastTimeByAlias gets the last run time of a job by alias.
 // GetJobLastTimeByAlias 通过别名获取任务的最后运行时间。
 func (s *Scheduler) GetJobLastTimeByAlias(alias string) (time.Time, error) {
+	if !s.Enable(AliasOptionName) {
+		return time.Time{}, ErrDisEnableAlias
+	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
 		return time.Time{}, ErrFoundAlias
@@ -347,6 +365,9 @@ func (s *Scheduler) GetJobLastTimeByAlias(alias string) (time.Time, error) {
 // GetJobLastTime gets the last run time of a job by jobID.
 // GetJobLastTime 通过 jobID 获取任务的最后运行时间。
 func (s *Scheduler) GetJobLastTime(jobID string) (time.Time, error) {
+	if !s.Enable(AliasOptionName) {
+		return time.Time{}, ErrDisEnableAlias
+	}
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
 		return time.Time{}, err
@@ -361,6 +382,9 @@ func (s *Scheduler) GetJobLastTime(jobID string) (time.Time, error) {
 // GetJobNextTimeByAlias gets the next run time of a job by alias.
 // GetJobNextTimeByAlias 通过别名获取任务的下次运行时间。
 func (s *Scheduler) GetJobNextTimeByAlias(alias string) (time.Time, error) {
+	if !s.Enable(AliasOptionName) {
+		return time.Time{}, ErrDisEnableAlias
+	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
 		return time.Time{}, ErrFoundAlias
@@ -379,6 +403,9 @@ func (s *Scheduler) GetJobNextTimeByAlias(alias string) (time.Time, error) {
 // GetJobNextTime gets the next run time of a job by jobID.
 // GetJobNextTime 通过 jobID 获取任务的下次运行时间。
 func (s *Scheduler) GetJobNextTime(jobID string) (time.Time, error) {
+	if !s.Enable(AliasOptionName) {
+		return time.Time{}, ErrDisEnableAlias
+	}
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
 		return time.Time{}, err
@@ -393,6 +420,9 @@ func (s *Scheduler) GetJobNextTime(jobID string) (time.Time, error) {
 // GetJobLastAndNextByAlias gets the last and next run times of a job by alias.
 // GetJobLastAndNextByAlias 通过别名获取任务的最后和下次运行时间。
 func (s *Scheduler) GetJobLastAndNextByAlias(alias string) (time.Time, time.Time, error) {
+	if !s.Enable(AliasOptionName) {
+		return time.Time{}, time.Time{}, ErrDisEnableAlias
+	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
 		return time.Time{}, time.Time{}, ErrFoundAlias
@@ -455,6 +485,9 @@ func (s *Scheduler) GetJobByID(jobID string) (gocron.Job, error) {
 // GetJobByAlias gets a job by its alias.
 // GetJobByAlias 通过别名获取任务。
 func (s *Scheduler) GetJobByAlias(alias string) (gocron.Job, error) {
+	if !s.Enable(AliasOptionName) {
+		return nil, ErrDisEnableAlias
+	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
 		return nil, fmt.Errorf("chrono:alias %s not found", alias)
@@ -471,8 +504,10 @@ func (s *Scheduler) GetJobByIDOrAlias(identifier string) (gocron.Job, error) {
 	}
 
 	// 如果没有找到ID，尝试通过别名查找
-	if jobID, exists := s.aliasMap[identifier]; exists {
-		return s.GetJobByAlias(jobID)
+	if s.Enable(AliasOptionName) {
+		if jobID, exists := s.aliasMap[identifier]; exists {
+			return s.GetJobByAlias(jobID)
+		}
 	}
 
 	return nil, fmt.Errorf("chrono:job with identifier %s not found", identifier)

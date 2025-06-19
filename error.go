@@ -9,4 +9,5 @@ var (
 	ErrValidateTimeout = errors.New("chrono:task timeout must be greater than 0")
 	ErrTaskFailed      = errors.New("chrono:task is failed")
 	ErrFoundAlias      = errors.New("chrono:can not found  by alias")
+	ErrDisEnableAlias  = errors.New("chrono:alias is disable")
 )
