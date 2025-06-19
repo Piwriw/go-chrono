@@ -49,6 +49,7 @@ type SchedulerOptions struct {
 	// 别名选项
 	watchEnable ChronoOption // Watch option
 	// 监听选项
+	withTimeout time.Duration
 }
 
 // Enable checks if a specific option is enabled.
@@ -84,6 +85,14 @@ func WithAliasMode(enabled bool) SchedulerOption {
 func WithWatch(enabled bool) SchedulerOption {
 	return func(s *SchedulerOptions) {
 		s.aliasEnable = &WatchOption{enabled: enabled}
+	}
+}
+
+// WithTimeout sets the watch option.
+// WithTimeout 设置监听选项。
+func WithTimeout(timeout time.Duration) SchedulerOption {
+	return func(s *SchedulerOptions) {
+		s.withTimeout = timeout
 	}
 }
 
@@ -985,4 +994,13 @@ func (s *Scheduler) AddMonthlyJobWithOptions(interval uint, daysOfTheMonth gocro
 		return nil, fmt.Errorf("chrono:failed to add monthly job: %w", err)
 	}
 	return job, nil
+}
+
+// CronJob adds a new cron job.
+// CronJob 添加一个新的定时任务
+func (s *Scheduler) CronJob() CronJobInterface {
+	return &CronJobClient{
+		scheduler: s,
+		cron:      &CronJob{},
+	}
 }
