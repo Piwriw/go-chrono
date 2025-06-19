@@ -670,6 +670,10 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
+	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
 	if job.ID != "" {
@@ -741,6 +745,10 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 	// 检查任务函数是否存在
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
+	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
 	}
 	// Job options
 	opts := make([]gocron.JobOption, 0)
@@ -816,6 +824,10 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
+	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
 	if job.ID != "" {
@@ -887,6 +899,10 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 	// 检查任务函数是否存在
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
+	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -960,6 +976,10 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
+	// 优先使用每个Job的Timeout
+	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+		job.Timeout(s.schOptions.timeout)
+	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
 	if job.ID != "" {
@@ -1025,5 +1045,14 @@ func (s *Scheduler) CronJob() CronJobInterface {
 	return &CronJobClient{
 		scheduler: s,
 		job:       &CronJob{},
+	}
+}
+
+// DailyJob adds a new daily job.
+// DailyJob 添加一个新的每日任务
+func (s *Scheduler) DailyJob() DailyJobInterface {
+	return &DailyJobClient{
+		scheduler: s,
+		job:       &DailyJob{},
 	}
 }
