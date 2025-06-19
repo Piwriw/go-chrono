@@ -50,6 +50,11 @@ func (c *CronJob) Error() string {
 	return c.err.Error()
 }
 
+func (c *CronJob) CronExpr(expr string) *CronJob {
+	c.Expr = expr
+	return c
+}
+
 // Alias sets the alias for the CronJob.
 // Alias 设置 CronJob 的别名。
 func (c *CronJob) Alias(alias string) *CronJob {

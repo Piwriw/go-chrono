@@ -193,6 +193,20 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	return s.scheduler.RemoveJob(jobUUID)
 }
 
+// RemoveJobByName removes a job by name.
+func (s *Scheduler) RemoveJobByName(name string) error {
+	jobs, err := s.GetJobs()
+	if err != nil {
+		return err
+	}
+	for _, job := range jobs {
+		if job.Name() == name {
+			return s.RemoveJob(job.ID().String())
+		}
+	}
+	return fmt.Errorf("job with name %s not found", name)
+}
+
 // RemoveJobByAlias removes a job by alias.
 // RemoveJobByAlias 通过别名移除任务。
 func (s *Scheduler) RemoveJobByAlias(alias string) error {
@@ -564,6 +578,9 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	// check if job has a task function
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
+	}
+	if job.Expr == "" {
+		return nil, fmt.Errorf("chrono:job %s has nil expr", job.Name)
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -1001,6 +1018,6 @@ func (s *Scheduler) AddMonthlyJobWithOptions(interval uint, daysOfTheMonth gocro
 func (s *Scheduler) CronJob() CronJobInterface {
 	return &CronJobClient{
 		scheduler: s,
-		cron:      &CronJob{},
+		job:       &CronJob{},
 	}
 }

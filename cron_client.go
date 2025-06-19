@@ -1,18 +1,14 @@
 package chrono
 
 import (
-	"fmt"
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 	"time"
 )
 
-type CronJobClient struct {
-	scheduler *Scheduler
-	cron      *CronJob
-}
-
 type CronJobInterface interface {
+	// CronExpr Linux Cron 表达式必须填写
+	CronExpr(expr string) *CronJob
 	Alias(alias string) *CronJob
 	JobID(id string) *CronJob
 	Name(name string) *CronJob
@@ -28,56 +24,65 @@ type CronJobInterface interface {
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob
 }
 
+type CronJobClient struct {
+	scheduler *Scheduler
+	job       *CronJob
+}
+
+func (c *CronJobClient) CronExpr(expr string) *CronJob {
+	return c.job.CronExpr(expr)
+}
+
 func (c *CronJobClient) Alias(alias string) *CronJob {
-	return c.cron.Alias(alias)
+	return c.job.Alias(alias)
 }
 
 func (c *CronJobClient) JobID(id string) *CronJob {
-	return c.cron.JobID(id)
+	return c.job.JobID(id)
 }
 
 func (c *CronJobClient) Name(name string) *CronJob {
-	return c.cron.Names(name)
+	return c.job.Names(name)
 }
 
 func (c *CronJobClient) Task(task any, parameters ...any) *CronJob {
-	return c.cron.Task(task, parameters...)
+	return c.job.Task(task, parameters...)
 }
 
 func (c *CronJobClient) Timeout(timeout time.Duration) *CronJob {
-	return c.cron.Timeout(timeout)
+	return c.job.Timeout(timeout)
 }
 
 func (c *CronJobClient) Watch(watch func(event JobWatchInterface)) *CronJob {
-	return c.cron.Watch(watch)
+	return c.job.Watch(watch)
 }
 
 func (c *CronJobClient) DefaultHooks() *CronJob {
-	return c.cron.DefaultHooks()
+	return c.job.DefaultHooks()
 }
 
 func (c *CronJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
-	return c.cron.BeforeJobRuns(eventListenerFunc)
+	return c.job.BeforeJobRuns(eventListenerFunc)
 }
 
 func (c *CronJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *CronJob {
-	return c.cron.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
 }
 
 func (c *CronJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
-	return c.cron.AfterJobRuns(eventListenerFunc)
+	return c.job.AfterJobRuns(eventListenerFunc)
 }
 
 func (c *CronJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
-	return c.cron.AfterJobRunsWithError(eventListenerFunc)
+	return c.job.AfterJobRunsWithError(eventListenerFunc)
 }
 
 func (c *CronJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *CronJob {
-	return c.cron.AfterJobRunsWithPanic(eventListenerFunc)
+	return c.job.AfterJobRunsWithPanic(eventListenerFunc)
 }
 
 func (c *CronJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
-	return c.cron.AfterLockError(eventListenerFunc)
+	return c.job.AfterLockError(eventListenerFunc)
 }
 
 // Add 添加任务
@@ -85,10 +90,10 @@ func (c *CronJobClient) Add() (gocron.Job, error) {
 	if c.scheduler == nil {
 		return nil, ErrScheduleNil
 	}
-	if c.cron == nil {
+	if c.job == nil {
 		return nil, ErrCronJobNil
 	}
-	return c.scheduler.AddCronJob(c.cron)
+	return c.scheduler.AddCronJob(c.job)
 }
 
 // Remove 删除任务
@@ -96,30 +101,21 @@ func (c *CronJobClient) Remove() error {
 	if c.scheduler == nil {
 		return ErrScheduleNil
 	}
-	if c.cron == nil {
+	if c.job == nil {
 		return ErrCronJobNil
 	}
 
 	// 1. 优先 JobID
-	if c.cron.ID != "" {
-		return c.scheduler.RemoveJob(c.cron.ID)
+	if c.job.ID != "" {
+		return c.scheduler.RemoveJob(c.job.ID)
 	}
 	// 2. 其次 Alias
-	if c.cron.Ali != "" {
-		return c.scheduler.RemoveJobByAlias(c.cron.Ali)
+	if c.job.Ali != "" {
+		return c.scheduler.RemoveJobByAlias(c.job.Ali)
 	}
 	// 3. Name 或多条件才遍历
-	if c.cron.Name != "" {
-		jobs, err := c.scheduler.GetJobs()
-		if err != nil {
-			return err
-		}
-		for _, job := range jobs {
-			if job.Name() == c.cron.Name {
-				return c.scheduler.RemoveJob(job.ID().String())
-			}
-		}
-		return fmt.Errorf("job with name %s not found", c.cron.Name)
+	if c.job.Name != "" {
+		return c.scheduler.RemoveJobByName(c.job.Name)
 	}
 	return ErrJobNotFound
 }
@@ -129,17 +125,17 @@ func (c *CronJobClient) Get() (gocron.Job, error) {
 	if c.scheduler == nil {
 		return nil, ErrScheduleNil
 	}
-	if c.cron == nil {
+	if c.job == nil {
 		return nil, ErrCronJobNil
 	}
-	if c.cron.ID != "" {
-		return c.scheduler.GetJobByID(c.cron.ID)
+	if c.job.ID != "" {
+		return c.scheduler.GetJobByID(c.job.ID)
 	}
-	if c.cron.Ali != "" {
-		return c.scheduler.GetJobByAlias(c.cron.Ali)
+	if c.job.Ali != "" {
+		return c.scheduler.GetJobByAlias(c.job.Ali)
 	}
-	if c.cron.Name != "" {
-		return c.scheduler.GetJobByName(c.cron.Name)
+	if c.job.Name != "" {
+		return c.scheduler.GetJobByName(c.job.Name)
 	}
 	return nil, ErrJobNotFound
 }

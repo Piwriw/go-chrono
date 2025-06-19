@@ -12,5 +12,6 @@ var (
 	ErrDisEnableAlias  = errors.New("chrono:alias is disable")
 	ErrScheduleNil     = errors.New("chrono:schedule cannot be nil")
 	ErrCronJobNil      = errors.New("chrono:cron job cannot be nil")
+	ErrDailyJobNil     = errors.New("chrono:daily job cannot be nil")
 	ErrJobNotFound     = errors.New("chrono:job not found (missing JobID/Alias/Name)")
 )

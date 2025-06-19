@@ -60,6 +60,12 @@ func (c *DailyJob) Error() string {
 	return c.err.Error()
 }
 
+// AtDayTime sets the specific time of day to run the job every day.
+func (c *DailyJob) AtDayTime(hour, minute, second uint) *DailyJob {
+	c.AtTimes = gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second))
+	return c
+}
+
 // Alias sets the alias for the DailyJob.
 // Alias 设置 DailyJob 的别名。
 func (c *DailyJob) Alias(alias string) *DailyJob {
