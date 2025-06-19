@@ -11,6 +11,18 @@ import (
 	"github.com/google/uuid"
 )
 
+var DefaultScheduler *Scheduler
+
+// InitScheduler initializes the default scheduler.
+func InitScheduler(ctx context.Context, monitor SchedulerMonitor, options ...SchedulerOption) error {
+	var err error
+	DefaultScheduler, err = NewScheduler(ctx, monitor, options...)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 // Scheduler is the base gocron scheduler.
 // Scheduler 是基础的 gocron 调度器。
 type Scheduler struct {
