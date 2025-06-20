@@ -1,5 +1,7 @@
 package chrono
 
+import "time"
+
 const (
 	AliasOptionName  = "alias"
 	WatchOptionName  = "watch"
@@ -57,4 +59,25 @@ func (w *WatchOption) Enable() bool {
 
 func (w *WatchOption) WatchFunc() func(event JobWatchInterface) {
 	return w.watchFunc
+}
+
+// TimeoutOption represents the timeout option.
+// TimeoutOption 表示超时选项。
+type TimeoutOption struct {
+	// 是否启用超时选项
+	enabled bool // Whether the timeout option is enabled
+	// 超时时间
+	timeout time.Duration
+}
+
+func (t *TimeoutOption) Name() string {
+	return TimoutOptionName
+}
+
+func (t *TimeoutOption) Enable() bool {
+	return t.enabled
+}
+
+func (t *TimeoutOption) Timeout() time.Duration {
+	return t.timeout
 }
