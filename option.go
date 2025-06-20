@@ -37,8 +37,10 @@ func (a *AliasOption) Enable() bool {
 // WatchOption represents the watch option.
 // WatchOption 表示监听选项。
 type WatchOption struct {
-	enabled bool // Whether the watch option is enabled
 	// 是否启用监听选项
+	enabled bool // Whether the watch option is enabled
+	// 监听函数
+	watchFunc func(event JobWatchInterface)
 }
 
 // Name returns the name of the watch option.
@@ -51,4 +53,8 @@ func (w *WatchOption) Name() string {
 // Enable 返回监听选项是否启用。
 func (w *WatchOption) Enable() bool {
 	return w.enabled
+}
+
+func (w *WatchOption) WatchFunc() func(event JobWatchInterface) {
+	return w.watchFunc
 }
