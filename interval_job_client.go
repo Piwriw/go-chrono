@@ -23,7 +23,7 @@ type IntervalJobClientInterface interface {
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *IntervalJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob
 	Add() (gocron.Job, error)
-	BatchAdd(cronJobs ...*IntervalJob) ([]gocron.Job, error)
+	BatchAdd(intervalJobs ...*IntervalJob) ([]gocron.Job, error)
 	Remove() error
 	Get() (gocron.Job, error)
 }

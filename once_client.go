@@ -23,7 +23,7 @@ type OnceJobClientInterface interface {
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *OnceJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *OnceJob
 	Add() (gocron.Job, error)
-	BatchAdd(cronJobs ...*OnceJob) ([]gocron.Job, error)
+	BatchAdd(onceJobs ...*OnceJob) ([]gocron.Job, error)
 	Remove() error
 	Get() (gocron.Job, error)
 }

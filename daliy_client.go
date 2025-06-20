@@ -23,7 +23,7 @@ type DailyJobClientInterface interface {
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *DailyJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob
 	Add() (gocron.Job, error)
-	BatchAdd(cronJobs ...*DailyJob) ([]gocron.Job, error)
+	BatchAdd(dailyJobs ...*DailyJob) ([]gocron.Job, error)
 	Remove() error
 	Get() (gocron.Job, error)
 }

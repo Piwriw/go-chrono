@@ -23,7 +23,7 @@ type WeeklyJobClientInterface interface {
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *WeeklyJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *WeeklyJob
 	Add() (gocron.Job, error)
-	BatchAdd(cronJobs ...*WeeklyJob) ([]gocron.Job, error)
+	BatchAdd(weeklyJobs ...*WeeklyJob) ([]gocron.Job, error)
 	Remove() error
 	Get() (gocron.Job, error)
 }

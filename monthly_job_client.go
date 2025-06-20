@@ -23,7 +23,7 @@ type MonthJobClientInterface interface {
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *MonthJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *MonthJob
 	Add() (gocron.Job, error)
-	BatchAdd(cronJobs ...*MonthJob) ([]gocron.Job, error)
+	BatchAdd(monthJobs ...*MonthJob) ([]gocron.Job, error)
 	Remove() error
 	Get() (gocron.Job, error)
 }
