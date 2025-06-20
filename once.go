@@ -34,6 +34,10 @@ func (c *OnceJob) Error() string {
 	return c.err.Error()
 }
 
+func (c *OnceJob) AtTimes(workTimes ...time.Time) *OnceJob {
+	c.WorkTime = workTimes
+	return nil
+}
 func (c *OnceJob) Alias(alias string) *OnceJob {
 	c.Ali = alias
 	return c

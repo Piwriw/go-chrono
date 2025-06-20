@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type CronJobInterface interface {
+type CronJobClientInterface interface {
 	// CronExpr Linux Cron 表达式必须填写
 	CronExpr(expr string) *CronJob
 	Alias(alias string) *CronJob
@@ -22,12 +22,18 @@ type CronJobInterface interface {
 	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *CronJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob
+	Add() (gocron.Job, error)
+	BatchAdd(cronJobs ...*CronJob) ([]gocron.Job, error)
+	Remove() error
+	Get() (gocron.Job, error)
 }
 
 type CronJobClient struct {
 	scheduler *Scheduler
 	job       *CronJob
 }
+
+var _ CronJobClientInterface = (*CronJobClient)(nil)
 
 func (c *CronJobClient) CronExpr(expr string) *CronJob {
 	return c.job.CronExpr(expr)
@@ -94,6 +100,13 @@ func (c *CronJobClient) Add() (gocron.Job, error) {
 		return nil, ErrCronJobNil
 	}
 	return c.scheduler.AddCronJob(c.job)
+}
+
+func (c *CronJobClient) BatchAdd(cronJobs ...*CronJob) ([]gocron.Job, error) {
+	if c.scheduler == nil {
+		return nil, ErrScheduleNil
+	}
+	return c.scheduler.AddCronJobs(cronJobs...)
 }
 
 // Remove 删除任务

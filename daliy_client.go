@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type DailyJobInterface interface {
+type DailyJobClientInterface interface {
 	// AtDayTime 设置任务在每天的指定时间运行
 	AtDayTime(hour, minute, second uint) *DailyJob
 	Alias(alias string) *DailyJob
@@ -22,12 +22,18 @@ type DailyJobInterface interface {
 	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob
 	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *DailyJob
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob
+	Add() (gocron.Job, error)
+	BatchAdd(cronJobs ...*DailyJob) ([]gocron.Job, error)
+	Remove() error
+	Get() (gocron.Job, error)
 }
 
 type DailyJobClient struct {
 	scheduler *Scheduler
 	job       *DailyJob
 }
+
+var _ DailyJobClientInterface = (*DailyJobClient)(nil)
 
 func (c *DailyJobClient) AtDayTime(hour, minute, second uint) *DailyJob {
 	return c.job.AtDayTime(hour, minute, second)
@@ -93,6 +99,13 @@ func (c *DailyJobClient) Add() (gocron.Job, error) {
 		return nil, ErrDailyJobNil
 	}
 	return c.scheduler.AddDailyJob(c.job)
+}
+
+func (c *DailyJobClient) BatchAdd(dailyJobs ...*DailyJob) ([]gocron.Job, error) {
+	if c.scheduler == nil {
+		return nil, ErrScheduleNil
+	}
+	return c.scheduler.AddDailyJobs(dailyJobs...)
 }
 
 func (c *DailyJobClient) Remove() error {

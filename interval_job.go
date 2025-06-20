@@ -14,26 +14,26 @@ import (
 // IntervalJob represents a job that runs at a fixed interval.
 // IntervalJob 表示一个按固定时间间隔运行的任务。
 type IntervalJob struct {
-	ID string // Unique identifier for the job
 	// 任务的唯一标识符
-	Ali string // Alias for the job
+	ID string // Unique identifier for the job
 	// 任务的别名
+	Ali string // Alias for the job
+	// 任务的名称
 	Name string // Name of the job
-	// 任务名称
+	// 任务的时间间隔
 	Interval time.Duration // Interval duration between job runs
-	// 任务运行的时间间隔
+	// 任务的执行函数
 	TaskFunc any // The function to execute as the job
-	// 作为任务执行的函数
+	// 任务的参数
 	Parameters []any // Parameters to pass to the task function
-	// 传递给任务函数的参数
+	// 任务的钩子函数
 	Hooks []gocron.EventListener // Event hooks for job lifecycle events
-	// 任务生命周期事件的钩子
+	//  监听任务事件的函数
 	WatchFunc func(event JobWatchInterface) // Function to watch job events
-	// 监听任务事件的函数
-	timeout time.Duration // Timeout for the job execution
 	// 任务执行的超时时间
-	err error // Error state for the job
+	timeout time.Duration // Timeout for the job execution
 	// 任务的错误状态
+	err error // Error state for the job
 }
 
 // NewIntervalJob creates a new IntervalJob with the specified interval.
@@ -48,6 +48,11 @@ func NewIntervalJob(interval time.Duration) *IntervalJob {
 // Error 返回与 IntervalJob 相关的错误信息（如果有）。
 func (c *IntervalJob) Error() string {
 	return c.err.Error()
+}
+
+func (c *IntervalJob) IntervalTime(interval time.Duration) *IntervalJob {
+	c.Interval = interval
+	return c
 }
 
 // Alias sets the alias for the IntervalJob.

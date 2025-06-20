@@ -24,7 +24,7 @@ type WeeklyJob struct {
 	// 任务运行的周数间隔
 	DaysOfTheWeek gocron.Weekdays // Days of the week to run the job
 	// 任务每周运行的具体星期几
-	AtTimes gocron.AtTimes // Specific times of day to run the job
+	WorkTimes gocron.AtTimes // Specific times of day to run the job
 	// 任务每天运行的具体时间点
 	TaskFunc any // The function to execute as the job
 	// 作为任务执行的函数
@@ -44,7 +44,7 @@ func NewWeeklyJob(interval uint, days gocron.Weekdays, atTime gocron.AtTimes) *W
 	return &WeeklyJob{
 		Interval:      interval,
 		DaysOfTheWeek: days,
-		AtTimes:       atTime,
+		WorkTimes:     atTime,
 	}
 }
 
@@ -52,15 +52,14 @@ func NewWeeklyJob(interval uint, days gocron.Weekdays, atTime gocron.AtTimes) *W
 // NewWeeklyJobAtTime 创建一个每周在特定星期和时间运行的 WeeklyJob。
 func NewWeeklyJobAtTime(days []time.Weekday, hour, minute, second uint) *WeeklyJob {
 	if len(days) == 0 {
-		err := errors.New("chrono:at time must have at least one day")
 		return &WeeklyJob{
-			err: err,
+			err: ErrAtTimeDaysNil,
 		}
 	}
 	return &WeeklyJob{
 		Interval:      1,
 		DaysOfTheWeek: gocron.NewWeekdays(days[0], days[1:]...),
-		AtTimes:       gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
+		WorkTimes:     gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
 	}
 }
 
@@ -68,6 +67,19 @@ func NewWeeklyJobAtTime(days []time.Weekday, hour, minute, second uint) *WeeklyJ
 // Error 返回与 WeeklyJob 相关的错误信息（如果有）。
 func (c *WeeklyJob) Error() string {
 	return c.err.Error()
+}
+
+func (c *WeeklyJob) AtTimes(days []time.Weekday, hour, minute, second uint) *WeeklyJob {
+	if len(days) == 0 {
+		return &WeeklyJob{
+			err: ErrAtTimeDaysNil,
+		}
+	}
+	return &WeeklyJob{
+		Interval:      1,
+		DaysOfTheWeek: gocron.NewWeekdays(days[0], days[1:]...),
+		WorkTimes:     gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
+	}
 }
 
 // Alias sets the alias for the WeeklyJob.

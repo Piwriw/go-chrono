@@ -914,7 +914,7 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 		opts = append(opts, gocron.WithIdentifier(jobID))
 	}
 	jobInstance, err := s.scheduler.NewJob(
-		gocron.WeeklyJob(job.Interval, job.DaysOfTheWeek, job.AtTimes),
+		gocron.WeeklyJob(job.Interval, job.DaysOfTheWeek, job.WorkTimes),
 		gocron.NewTask(job.TaskFunc),
 		opts...,
 	)
@@ -1039,9 +1039,17 @@ func (s *Scheduler) AddMonthlyJobWithOptions(interval uint, daysOfTheMonth gocro
 	return job, nil
 }
 
+// OnceJob 表示一个一次性任务的客户端
+func (s *Scheduler) OnceJob() OnceJobClientInterface {
+	return &OnceJobClient{
+		scheduler: s,
+		job:       &OnceJob{},
+	}
+}
+
 // CronJob adds a new cron job.
 // CronJob 添加一个新的定时任务
-func (s *Scheduler) CronJob() CronJobInterface {
+func (s *Scheduler) CronJob() CronJobClientInterface {
 	return &CronJobClient{
 		scheduler: s,
 		job:       &CronJob{},
@@ -1050,9 +1058,32 @@ func (s *Scheduler) CronJob() CronJobInterface {
 
 // DailyJob adds a new daily job.
 // DailyJob 添加一个新的每日任务
-func (s *Scheduler) DailyJob() DailyJobInterface {
+func (s *Scheduler) DailyJob() DailyJobClientInterface {
 	return &DailyJobClient{
 		scheduler: s,
 		job:       &DailyJob{},
+	}
+}
+
+// IntervalJob 设置间隔Job
+func (s *Scheduler) IntervalJob() IntervalJobClientInterface {
+	return &IntervalJobClient{
+		scheduler: s,
+		job:       &IntervalJob{},
+	}
+}
+
+func (s *Scheduler) WeeklyJob() WeeklyJobClientInterface {
+	return &WeeklyJobClient{
+		scheduler: s,
+		job:       &WeeklyJob{},
+	}
+}
+
+// Monthly 添加一个新的每月任务
+func (s *Scheduler) Monthly() MonthJobClientInterface {
+	return &MonthJobClient{
+		scheduler: s,
+		job:       &MonthJob{},
 	}
 }

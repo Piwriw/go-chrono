@@ -52,9 +52,8 @@ func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTime
 // NewMonthJobAtTime 创建一个每月在特定日期和时间运行的 MonthJob。
 func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 	if len(days) == 0 {
-		err := errors.New("chrono:at time must have at least one day")
 		return &MonthJob{
-			err: err,
+			err: ErrAtTimeDaysNil,
 		}
 	}
 	return &MonthJob{
@@ -68,6 +67,20 @@ func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 // Error 返回与 MonthJob 相关的错误信息（如果有）。
 func (c *MonthJob) Error() string {
 	return c.err.Error()
+}
+
+// AtTime sets the time of day for the MonthJob to run.
+func (c *MonthJob) AtTime(days []int, hour, minute, second int) *MonthJob {
+	if len(days) == 0 {
+		return &MonthJob{
+			err: ErrAtTimeDaysNil,
+		}
+	}
+	return &MonthJob{
+		Interval:       1,
+		DaysOfTheMonth: gocron.NewDaysOfTheMonth(days[0], days[1:]...),
+		AtTimes:        gocron.NewAtTimes(gocron.NewAtTime(uint(hour), uint(minute), uint(second))),
+	}
 }
 
 // Alias sets the alias for the MonthJob.

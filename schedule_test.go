@@ -635,3 +635,10 @@ func TestDayTimeToCron(t *testing.T) {
 	case <-time.After(time.Minute * 10):
 	}
 }
+
+func TestAddCronJob(t *testing.T) {
+	scheduler, err := NewScheduler(nil, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+}
