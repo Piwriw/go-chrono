@@ -46,9 +46,6 @@ func NewCronJob(expr string) *CronJob {
 
 // Error returns the error message associated with the CronJob, if any.
 // Error 返回与 CronJob 相关的错误信息（如果有）。
-func (c *CronJob) Error() string {
-	return c.err.Error()
-}
 
 func (c *CronJob) CronExpr(expr string) *CronJob {
 	c.Expr = expr

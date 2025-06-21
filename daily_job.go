@@ -54,12 +54,6 @@ func NewDailyJobAtTime(hour, minute, second uint) *DailyJob {
 	}
 }
 
-// Error returns the error message associated with the DailyJob, if any.
-// Error 返回与 DailyJob 相关的错误信息（如果有）。
-func (c *DailyJob) Error() string {
-	return c.err.Error()
-}
-
 // AtDayTime sets the specific time of day to run the job every day.
 func (c *DailyJob) AtDayTime(hour, minute, second uint) *DailyJob {
 	c.AtTimes = gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second))

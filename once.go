@@ -30,10 +30,6 @@ func NewOnceJob(workTimes ...time.Time) *OnceJob {
 	}
 }
 
-func (c *OnceJob) Error() string {
-	return c.err.Error()
-}
-
 func (c *OnceJob) AtTimes(workTimes ...time.Time) *OnceJob {
 	c.WorkTime = workTimes
 	return nil

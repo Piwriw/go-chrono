@@ -63,12 +63,6 @@ func NewWeeklyJobAtTime(days []time.Weekday, hour, minute, second uint) *WeeklyJ
 	}
 }
 
-// Error returns the error message associated with the WeeklyJob, if any.
-// Error 返回与 WeeklyJob 相关的错误信息（如果有）。
-func (c *WeeklyJob) Error() string {
-	return c.err.Error()
-}
-
 func (c *WeeklyJob) AtTimes(days []time.Weekday, hour, minute, second uint) *WeeklyJob {
 	if len(days) == 0 {
 		return &WeeklyJob{

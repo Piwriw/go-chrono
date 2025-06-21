@@ -44,12 +44,6 @@ func NewIntervalJob(interval time.Duration) *IntervalJob {
 	}
 }
 
-// Error returns the error message associated with the IntervalJob, if any.
-// Error 返回与 IntervalJob 相关的错误信息（如果有）。
-func (c *IntervalJob) Error() string {
-	return c.err.Error()
-}
-
 func (c *IntervalJob) IntervalTime(interval time.Duration) *IntervalJob {
 	c.Interval = interval
 	return c

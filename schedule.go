@@ -615,7 +615,7 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -704,7 +704,7 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -783,7 +783,7 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	// Job options
 	opts := make([]gocron.JobOption, 0)
@@ -864,7 +864,7 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -943,7 +943,7 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -1022,7 +1022,7 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))

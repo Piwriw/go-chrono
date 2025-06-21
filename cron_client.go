@@ -1,9 +1,10 @@
 package chrono
 
 import (
+	"time"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
-	"time"
 )
 
 type CronJobClientInterface interface {

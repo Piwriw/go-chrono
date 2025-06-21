@@ -63,12 +63,6 @@ func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 	}
 }
 
-// Error returns the error message associated with the MonthJob, if any.
-// Error 返回与 MonthJob 相关的错误信息（如果有）。
-func (c *MonthJob) Error() string {
-	return c.err.Error()
-}
-
 // AtTime sets the time of day for the MonthJob to run.
 func (c *MonthJob) AtTime(days []int, hour, minute, second int) *MonthJob {
 	if len(days) == 0 {

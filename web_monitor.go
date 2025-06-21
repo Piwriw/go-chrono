@@ -85,7 +85,11 @@ func (wm *WebMonitor) Start() error {
 
 func (wm *WebMonitor) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{"status":"ok"}`))
+	_, err := w.Write([]byte(`{"status":"ok"}`))
+	if err != nil {
+		slog.Error("write healthz response error", slog.Any("err", err))
+		return
+	}
 }
 
 type JobMonitorSpec struct {

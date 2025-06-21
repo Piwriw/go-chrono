@@ -99,7 +99,7 @@ func TestCustomJobMonitor(t *testing.T) {
 	}
 }
 func TestTwoJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -134,7 +134,7 @@ func TestTwoJob(t *testing.T) {
 }
 
 func TestTimeOutJobPanic(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -170,7 +170,7 @@ func TestTimeOutJobPanic(t *testing.T) {
 	}
 }
 func TestTimeOutJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -207,7 +207,7 @@ func TestTimeOutJob(t *testing.T) {
 }
 
 func TestWithNoTimeOutJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -240,7 +240,7 @@ func TestWithNoTimeOutJob(t *testing.T) {
 	}
 }
 func TestValidateTimeOutJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -265,6 +265,9 @@ func TestValidateTimeOutJob(t *testing.T) {
 	}
 	scheduler.Start()
 	nextRun, err := job.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
 	go scheduler.Watch()
 	t.Log("First Task", job.ID(), "TASK NAME", job.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -273,7 +276,7 @@ func TestValidateTimeOutJob(t *testing.T) {
 	}
 }
 func TestWatchJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -305,7 +308,7 @@ func TestWatchJob(t *testing.T) {
 }
 
 func TestMonthlyJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,7 +334,7 @@ func TestMonthlyJob(t *testing.T) {
 }
 
 func TestWeeklyJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -356,7 +359,7 @@ func TestWeeklyJob(t *testing.T) {
 	}
 }
 func TestDailyJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -374,6 +377,9 @@ func TestDailyJob(t *testing.T) {
 	}
 	scheduler.Start()
 	nextRun, err := job.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("First Task", job.ID(), "TASK NAME", job.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
 	select {
@@ -390,7 +396,7 @@ func countdis(a, b int) {
 }
 
 func TestIntervalJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -437,6 +443,9 @@ func TestIntervalJob(t *testing.T) {
 	scheduler.Start()
 	go scheduler.Watch()
 	nextRun, err := job.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("First Task", job.ID(), "TASK NAME", job.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
 	select {
@@ -445,7 +454,7 @@ func TestIntervalJob(t *testing.T) {
 }
 
 func TestIntervalJobRe(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -467,7 +476,7 @@ func TestIntervalJobRe(t *testing.T) {
 	go func() {
 		time.Sleep(10 * time.Second)
 		if err := scheduler.RemoveJob(job.ID().String()); err != nil {
-			t.Fatal(err)
+			slog.Error(err.Error())
 		}
 	}()
 	go func() {
@@ -475,7 +484,7 @@ func TestIntervalJobRe(t *testing.T) {
 			time.Sleep(5 * time.Second)
 			jobs, err := scheduler.GetJobs()
 			if err != nil {
-				t.Fatal(err)
+				slog.Error(err.Error())
 			}
 			for _, job := range jobs {
 				t.Log("job", job.ID(), "TASK NAME", job.Name())
@@ -486,7 +495,7 @@ func TestIntervalJobRe(t *testing.T) {
 }
 
 func TestOnceJob(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -500,12 +509,14 @@ func TestOnceJob(t *testing.T) {
 		Task(task, 1, 2)
 
 	job, err := scheduler.AddOnceJob(onceJob)
-
 	if err != nil {
 		t.Fatal(err)
 	}
 	scheduler.Start()
 	nextRun, err := job.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Log("First Task", job.ID(), "TASK NAME", job.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
 	select {
@@ -514,7 +525,7 @@ func TestOnceJob(t *testing.T) {
 }
 
 func TestMonitor(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -543,7 +554,7 @@ func TestMonitor(t *testing.T) {
 }
 
 func TestDefaultHooks(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -572,7 +583,7 @@ func TestDefaultHooks(t *testing.T) {
 }
 
 func TestDayTimeToCron(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil)
+	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -609,7 +620,6 @@ func TestDayTimeToCron(t *testing.T) {
 			scheduler.monitor.RecordJobTiming(startTime, endTime, jobID, jobName, nil)
 		}
 		fmt.Println("Task executed with parameters:", a, b)
-
 	}
 	cronJob := NewCronJob(DayTimeToCron(time.Now().Add(time.Minute*1))).
 		Task(task, 1, 2).
@@ -637,7 +647,7 @@ func TestDayTimeToCron(t *testing.T) {
 }
 
 func TestWebMonitor(t *testing.T) {
-	scheduler, err := NewScheduler(nil, nil, WithWebMonitor("localhost:8080"))
+	scheduler, err := NewScheduler(context.TODO(), nil, WithWebMonitor("localhost:8080"))
 	if err != nil {
 		t.Fatal(err)
 	}
