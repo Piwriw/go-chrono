@@ -3,9 +3,10 @@ package chrono
 import "time"
 
 const (
-	AliasOptionName  = "alias"
-	WatchOptionName  = "watch"
-	TimoutOptionName = "timeout"
+	AliasOptionName      = "alias"
+	WatchOptionName      = "watch"
+	TimoutOptionName     = "timeout"
+	WebMonitorOptionName = "web_monitor"
 )
 
 // ChronoOption is the interface for options in chrono.
@@ -17,12 +18,39 @@ type ChronoOption interface {
 	// 返回选项是否启用
 }
 
+// WebMonitorOption represents the web monitor option.
+// WebMonitorOption 表示 Web 监控选项。
+type WebMonitorOption struct {
+	// 是否启用 Web 监控选项
+	// Whether the web monitor option is enabled
+	enabled bool
+	// Web 监控地址
+	// Web monitor address
+	address string
+}
+
+func (w *WebMonitorOption) Name() string {
+	return WebMonitorOptionName
+}
+
+func (w *WebMonitorOption) Enable() bool {
+	return w.enabled
+}
+
+func (w *WebMonitorOption) Address() string {
+	return w.address
+}
+
+var _ ChronoOption = &WebMonitorOption{}
+
 // AliasOption represents the alias option.
 // AliasOption 表示别名选项。
 type AliasOption struct {
 	enabled bool // Whether the alias option is enabled
 	// 是否启用别名选项
 }
+
+var _ ChronoOption = &AliasOption{}
 
 // Name returns the name of the alias option.
 // Name 返回别名选项的名称。
@@ -44,6 +72,8 @@ type WatchOption struct {
 	// 监听函数
 	watchFunc func(event JobWatchInterface)
 }
+
+var _ ChronoOption = &WatchOption{}
 
 // Name returns the name of the watch option.
 // Name 返回监听选项的名称。
@@ -69,6 +99,8 @@ type TimeoutOption struct {
 	// 超时时间
 	timeout time.Duration
 }
+
+var _ ChronoOption = &TimeoutOption{}
 
 func (t *TimeoutOption) Name() string {
 	return TimoutOptionName

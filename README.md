@@ -18,7 +18,8 @@
 - [ ] 设置Schedule最大管控调用任务数量
 - [ ] 自定义Logger
 - [ ] Job分组级别管控
-- [ ] 监控模式
+- [ ] 优雅终止关闭
+- [x] 监控模式
   - [ ]  Prometheus端点监控
-  - [ ]  Listen Web监控
+  - [x]  Listen Web监控
   - [ ]  可以查询最近X次的执行结果

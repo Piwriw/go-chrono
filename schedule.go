@@ -49,11 +49,16 @@ type Scheduler struct {
 // SchedulerOptions holds options for the scheduler.
 // SchedulerOptions 保存调度器的选项。
 type SchedulerOptions struct {
-	aliasOption ChronoOption // Alias option
 	// 别名选项
-	watchOption *WatchOption // Watch option
+	// Alias option
+	aliasOption ChronoOption
+	// Watch option
 	// 监听选项
-	timeoutOption *TimeoutOption // Timeout option
+	watchOption *WatchOption
+	// Timeout option
+	timeoutOption *TimeoutOption
+	// WebMonitor option
+	webMonitorOption *WebMonitorOption
 }
 
 // Enable checks if a specific option is enabled.
@@ -69,7 +74,13 @@ func (s *Scheduler) Enable(option string) bool {
 			return s.schOptions.watchOption.Enable()
 		}
 	case TimoutOptionName:
-		return s.schOptions.timeoutOption.Enable()
+		if s.schOptions.timeoutOption != nil {
+			return s.schOptions.timeoutOption.Enable()
+		}
+	case WebMonitorOptionName:
+		if s.schOptions.webMonitorOption != nil {
+			return s.schOptions.webMonitorOption.Enable()
+		}
 	}
 	return false
 }
@@ -80,17 +91,17 @@ type SchedulerOption func(*SchedulerOptions)
 
 // WithAliasMode sets the alias mode option.
 // WithAliasMode 设置别名模式选项。
-func WithAliasMode(enabled bool) SchedulerOption {
+func WithAliasMode() SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.aliasOption = &AliasOption{enabled: enabled}
+		s.aliasOption = &AliasOption{enabled: true}
 	}
 }
 
 // WithWatch sets the watch option.
 // WithWatch 设置监听选项。
-func WithWatch(enabled bool, watchFunc func(event JobWatchInterface)) SchedulerOption {
+func WithWatch(watchFunc func(event JobWatchInterface)) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.aliasOption = &WatchOption{enabled: enabled, watchFunc: watchFunc}
+		s.aliasOption = &WatchOption{enabled: true, watchFunc: watchFunc}
 	}
 }
 
@@ -101,7 +112,13 @@ func WithTimeout(timeout time.Duration) SchedulerOption {
 		if timeout <= 0 {
 			timeout = defaultTimeout
 		}
-		s.timeoutOption = &TimeoutOption{timeout: timeout}
+		s.timeoutOption = &TimeoutOption{enabled: true, timeout: timeout}
+	}
+}
+
+func WithWebMonitor(address string) SchedulerOption {
+	return func(s *SchedulerOptions) {
+		s.webMonitorOption = &WebMonitorOption{enabled: true, address: address}
 	}
 }
 
@@ -176,6 +193,11 @@ func NewScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sche
 // Start starts the scheduler.
 // Start 启动调度器。
 func (s *Scheduler) Start() {
+	if s.Enable(WebMonitorOptionName) {
+		if err := NewWebMonitor(s, s.schOptions.webMonitorOption.Address()).Start(); err != nil {
+			panic("chrono:failed to start web monitor")
+		}
+	}
 	s.scheduler.Start()
 }
 
@@ -592,7 +614,7 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 		return nil, fmt.Errorf("chrono:job %s has nil expr", job.Name)
 	}
 	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
+	if s.Enable(TimoutOptionName) {
 		job.Timeout(s.schOptions.timeoutOption.Timeout())
 	}
 	opts := make([]gocron.JobOption, 0)
