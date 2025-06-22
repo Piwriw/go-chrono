@@ -30,20 +30,27 @@ func InitScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sch
 // Scheduler is the base gocron scheduler.
 // Scheduler 是基础的 gocron 调度器。
 type Scheduler struct {
+	// Context for scheduler lifecycle
 	// 调度器生命周期的上下文
-	ctx context.Context // Context for scheduler lifecycle
+	ctx context.Context
+	// Underlying gocron scheduler
 	// 底层 gocron 调度器
-	scheduler gocron.Scheduler // Underlying gocron scheduler
+	scheduler gocron.Scheduler
+	// Scheduler monitor
 	// 调度器监控器
-	monitor SchedulerMonitor // Scheduler monitor
+	monitor SchedulerMonitor
+	// Alias to jobID mapping
 	// 别名到 jobID 的映射
-	aliasMap map[string]string // Alias to jobID mapping
+	aliasMap map[string]string
+	// JobID to watch function mapping
 	// jobID 到监听函数的映射
-	watchFuncMap map[string]func(event JobWatchInterface) // JobID to watch function mapping
+	watchFuncMap map[string]func(event JobWatchInterface)
+	// Mutex to protect watchFuncMap
 	// 用于保护 watchFuncMap 的互斥锁
-	mu sync.Mutex // Mutex to protect watchFuncMap
+	mu sync.Mutex
+	// Scheduler options
 	// 调度器选项
-	schOptions *SchedulerOptions // Scheduler options
+	schOptions *SchedulerOptions
 }
 
 // SchedulerOptions holds options for the scheduler.
@@ -137,16 +144,21 @@ func WithLimit(limit int) SchedulerOption {
 // Event represents a job event.
 // Event 表示一个任务事件。
 type Event struct {
-	JobID string // Job ID
+	// Job ID
 	// 任务 ID
-	JobName string // Job name
+	JobID string
+	// Job name
 	// 任务名称
-	NextRunTime time.Time // Next run time
+	JobName string
+	// Next run time
 	// 下次运行时间
-	LastTime time.Time // Last run time
+	NextRunTime time.Time
+	// Last run time
 	// 上次运行时间
-	Err error // Error
+	LastTime time.Time
+	// Error
 	// 错误
+	Err error
 }
 
 // Watch starts watching job events.

@@ -13,10 +13,12 @@ const (
 // ChronoOption is the interface for options in chrono.
 // ChronoOption 是 chrono 中选项的接口。
 type ChronoOption interface {
-	Name() string // Returns the name of the option
+	// Name Returns the name of the option
 	// 返回选项名称
-	Enable() bool // Returns whether the option is enabled
+	Name() string
+	// Enable Returns whether the option is enabled
 	// 返回选项是否启用
+	Enable() bool
 }
 
 // WebMonitorOption represents the web monitor option.
