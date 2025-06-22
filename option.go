@@ -7,6 +7,7 @@ const (
 	WatchOptionName      = "watch"
 	TimoutOptionName     = "timeout"
 	WebMonitorOptionName = "web_monitor"
+	LimitOptionName      = "limit"
 )
 
 // ChronoOption is the interface for options in chrono.
@@ -112,4 +113,23 @@ func (t *TimeoutOption) Enable() bool {
 
 func (t *TimeoutOption) Timeout() time.Duration {
 	return t.timeout
+}
+
+type LimitOption struct {
+	enabled bool
+	number  int
+}
+
+var _ ChronoOption = &LimitOption{}
+
+func (l *LimitOption) Name() string {
+	return LimitOptionName
+}
+
+func (l *LimitOption) Enable() bool {
+	return l.enabled
+}
+
+func (l *LimitOption) Limit() int {
+	return l.number
 }

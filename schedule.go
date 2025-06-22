@@ -30,20 +30,20 @@ func InitScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sch
 // Scheduler is the base gocron scheduler.
 // Scheduler 是基础的 gocron 调度器。
 type Scheduler struct {
-	ctx context.Context // Context for scheduler lifecycle
 	// 调度器生命周期的上下文
-	scheduler gocron.Scheduler // Underlying gocron scheduler
+	ctx context.Context // Context for scheduler lifecycle
 	// 底层 gocron 调度器
-	monitor SchedulerMonitor // Scheduler monitor
+	scheduler gocron.Scheduler // Underlying gocron scheduler
 	// 调度器监控器
-	aliasMap map[string]string // Alias to jobID mapping
+	monitor SchedulerMonitor // Scheduler monitor
 	// 别名到 jobID 的映射
-	watchFuncMap map[string]func(event JobWatchInterface) // JobID to watch function mapping
+	aliasMap map[string]string // Alias to jobID mapping
 	// jobID 到监听函数的映射
-	mu sync.Mutex // Mutex to protect watchFuncMap
+	watchFuncMap map[string]func(event JobWatchInterface) // JobID to watch function mapping
 	// 用于保护 watchFuncMap 的互斥锁
-	schOptions *SchedulerOptions // Scheduler options
+	mu sync.Mutex // Mutex to protect watchFuncMap
 	// 调度器选项
+	schOptions *SchedulerOptions // Scheduler options
 }
 
 // SchedulerOptions holds options for the scheduler.
@@ -51,14 +51,16 @@ type Scheduler struct {
 type SchedulerOptions struct {
 	// 别名选项
 	// Alias option
-	aliasOption ChronoOption
+	alias ChronoOption
 	// Watch option
 	// 监听选项
-	watchOption *WatchOption
+	watch *WatchOption
 	// Timeout option
-	timeoutOption *TimeoutOption
+	timeout *TimeoutOption
 	// WebMonitor option
-	webMonitorOption *WebMonitorOption
+	webMonitor *WebMonitorOption
+	// Limit option
+	limit *LimitOption
 }
 
 // Enable checks if a specific option is enabled.
@@ -66,20 +68,24 @@ type SchedulerOptions struct {
 func (s *Scheduler) Enable(option string) bool {
 	switch option {
 	case AliasOptionName:
-		if s.schOptions.aliasOption != nil {
-			return s.schOptions.aliasOption.Enable()
+		if s.schOptions.alias != nil {
+			return s.schOptions.alias.Enable()
 		}
 	case WatchOptionName:
-		if s.schOptions.watchOption != nil {
-			return s.schOptions.watchOption.Enable()
+		if s.schOptions.watch != nil {
+			return s.schOptions.watch.Enable()
 		}
 	case TimoutOptionName:
-		if s.schOptions.timeoutOption != nil {
-			return s.schOptions.timeoutOption.Enable()
+		if s.schOptions.timeout != nil {
+			return s.schOptions.timeout.Enable()
 		}
 	case WebMonitorOptionName:
-		if s.schOptions.webMonitorOption != nil {
-			return s.schOptions.webMonitorOption.Enable()
+		if s.schOptions.webMonitor != nil {
+			return s.schOptions.webMonitor.Enable()
+		}
+	case LimitOptionName:
+		if s.schOptions.limit != nil {
+			return s.schOptions.limit.Enable()
 		}
 	}
 	return false
@@ -93,7 +99,7 @@ type SchedulerOption func(*SchedulerOptions)
 // WithAliasMode 设置别名模式选项。
 func WithAliasMode() SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.aliasOption = &AliasOption{enabled: true}
+		s.alias = &AliasOption{enabled: true}
 	}
 }
 
@@ -101,7 +107,7 @@ func WithAliasMode() SchedulerOption {
 // WithWatch 设置监听选项。
 func WithWatch(watchFunc func(event JobWatchInterface)) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.aliasOption = &WatchOption{enabled: true, watchFunc: watchFunc}
+		s.alias = &WatchOption{enabled: true, watchFunc: watchFunc}
 	}
 }
 
@@ -112,13 +118,19 @@ func WithTimeout(timeout time.Duration) SchedulerOption {
 		if timeout <= 0 {
 			timeout = defaultTimeout
 		}
-		s.timeoutOption = &TimeoutOption{enabled: true, timeout: timeout}
+		s.timeout = &TimeoutOption{enabled: true, timeout: timeout}
 	}
 }
 
 func WithWebMonitor(address string) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.webMonitorOption = &WebMonitorOption{enabled: true, address: address}
+		s.webMonitor = &WebMonitorOption{enabled: true, address: address}
+	}
+}
+
+func WithLimit(limit int) SchedulerOption {
+	return func(s *SchedulerOptions) {
+		s.limit = &LimitOption{enabled: true, number: limit}
 	}
 }
 
@@ -179,7 +191,6 @@ func NewScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sche
 	for _, option := range options {
 		option(schOptions)
 	}
-
 	return &Scheduler{
 		scheduler:    s,
 		monitor:      monitor,
@@ -194,7 +205,7 @@ func NewScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sche
 // Start 启动调度器。
 func (s *Scheduler) Start() {
 	if s.Enable(WebMonitorOptionName) {
-		if err := NewWebMonitor(s, s.schOptions.webMonitorOption.Address()).Start(); err != nil {
+		if err := NewWebMonitor(s, s.schOptions.webMonitor.Address()).Start(); err != nil {
 			panic("chrono:failed to start web monitor")
 		}
 	}
@@ -214,13 +225,17 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	if err != nil {
 		return fmt.Errorf("chrono:invalid job ID %s: %w", jobID, err)
 	}
+	if s.Enable(LimitOptionName) {
+		if err := s.incLimit(); err != nil {
+			return err
+		}
+	}
 	if s.Enable(AliasOptionName) {
 		s.removeAlias(jobID)
 	}
 	if s.Enable(WatchOptionName) {
 		s.removeWatchFunc(jobID)
 	}
-	slog.Info("chrono:job removed", "jobID", jobID)
 	return s.scheduler.RemoveJob(jobUUID)
 }
 
@@ -243,6 +258,11 @@ func (s *Scheduler) RemoveJobByName(name string) error {
 func (s *Scheduler) RemoveJobByAlias(alias string) error {
 	if !s.Enable(AliasOptionName) {
 		return ErrDisEnableAlias
+	}
+	if s.Enable(LimitOptionName) {
+		if err := s.incLimit(); err != nil {
+			return err
+		}
 	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
@@ -352,6 +372,35 @@ func (s *Scheduler) removeWatchFunc(jobID string) {
 	} else {
 		slog.Warn("chrono:Job not found in watchFuncMap", "jobID", jobID)
 	}
+}
+
+// CheckLimit checks if the limit is reached.
+// CheckLimit 检查是否达到限制。
+func (s *Scheduler) CheckLimit() bool {
+	if err := s.decLimit(); err != nil {
+		return false
+	}
+	return s.schOptions.limit.number >= 0
+}
+
+// incLimit increases the limit.
+// incLimit 释放Limit
+func (s *Scheduler) incLimit() error {
+	if !s.Enable(LimitOptionName) {
+		return ErrDisEnableLimit
+	}
+	s.schOptions.limit.number++
+	return nil
+}
+
+// decLimit decreases the limit.
+// decLimit 减少可用
+func (s *Scheduler) decLimit() error {
+	if !s.Enable(LimitOptionName) {
+		return ErrDisEnableLimit
+	}
+	s.schOptions.limit.number--
+	return nil
 }
 
 // TODO 批量移除任务
@@ -615,7 +664,12 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -641,7 +695,7 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	return jobInstance, nil
 }
@@ -704,7 +758,12 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -727,7 +786,7 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())
@@ -783,7 +842,12 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	// Job options
 	opts := make([]gocron.JobOption, 0)
@@ -808,7 +872,7 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())
@@ -864,7 +928,12 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -887,7 +956,7 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())
@@ -943,7 +1012,12 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -966,7 +1040,7 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())
@@ -1022,7 +1096,12 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 	}
 	// 优先使用每个Job的Timeout
 	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeoutOption.Timeout())
+		_ = job.Timeout(s.schOptions.timeout.Timeout())
+	}
+	if s.Enable(LimitOptionName) {
+		if !s.CheckLimit() {
+			return nil, ErrMoreLimit
+		}
 	}
 	opts := make([]gocron.JobOption, 0)
 	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
@@ -1045,7 +1124,7 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watchOption.WatchFunc())
+		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc())
 	}
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())

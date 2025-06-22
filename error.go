@@ -19,4 +19,6 @@ var (
 	ErrMonthJobNil     = errors.New("chrono:monthly job cannot be nil")
 	ErrWeeklyJobNil    = errors.New("chrono:weekly job cannot be nil")
 	ErrJobNotFound     = errors.New("chrono:job not found (missing JobID/Alias/Name)")
+	ErrDisEnableLimit  = errors.New("chrono:limit is disable")
+	ErrMoreLimit       = errors.New("chrono:limit is reached")
 )
