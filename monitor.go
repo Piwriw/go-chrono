@@ -12,20 +12,27 @@ import (
 // JobWatchInterface defines the interface for job event watching.
 // JobWatchInterface 定义了任务事件监听的接口。
 type JobWatchInterface interface {
-	GetJobID() string // Gets the job ID
+	// GetJobID Gets the job ID
 	// 获取任务 ID
-	GetJobName() string // Gets the job name
+	GetJobID() string
+	// GetJobName Gets the job name
 	// 获取任务名称
-	GetStartTime() time.Time // Gets the job start time
+	GetJobName() string
+	// GetStartTime Gets the job start time
 	// 获取任务开始时间
-	GetEndTime() time.Time // Gets the job end time
+	GetStartTime() time.Time
+	// GetEndTime Gets the job end time
 	// 获取任务结束时间
-	GetStatus() gocron.JobStatus // Gets the job status
+	GetEndTime() time.Time
+	// GetStatus Gets the job status
 	// 获取任务状态
-	GetTags() []string // Gets the job tags
+	GetStatus() gocron.JobStatus
+	// GetTags Gets the job tags
 	// 获取任务标签
-	Error() error // Gets the job error
+	GetTags() []string
+	// Error Gets the job error
 	// 获取任务错误
+	Error() error
 }
 
 // SchedulerMonitor defines the interface for a scheduler monitor.
