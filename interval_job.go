@@ -14,26 +14,39 @@ import (
 // IntervalJob represents a job that runs at a fixed interval.
 // IntervalJob 表示一个按固定时间间隔运行的任务。
 type IntervalJob struct {
+	// Unique identifier for the job
 	// 任务的唯一标识符
-	ID string // Unique identifier for the job
+	ID string
+	// Alias for the job
 	// 任务的别名
-	Ali string // Alias for the job
+	Ali string
+	// Name of the job
 	// 任务的名称
-	Name string // Name of the job
+	Name string
 	// 任务的时间间隔
-	Interval time.Duration // Interval duration between job runs
+	// Interval duration between job runs
+	Interval time.Duration
 	// 任务的执行函数
-	TaskFunc any // The function to execute as the job
+	// The function to execute as the job
+	TaskFunc any
+	// Tags for the job
+	// 任务的标签
+	Tags []string
+	// Parameters to pass to the task function
 	// 任务的参数
-	Parameters []any // Parameters to pass to the task function
+	Parameters []any
+	// Event hooks for job lifecycle events
 	// 任务的钩子函数
-	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	Hooks []gocron.EventListener
+	// Function to watch job events
 	//  监听任务事件的函数
-	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	WatchFunc func(event JobWatchInterface)
+	// Timeout for the job execution
 	// 任务执行的超时时间
-	timeout time.Duration // Timeout for the job execution
+	timeout time.Duration
+	// Error state for the job
 	// 任务的错误状态
-	err error // Error state for the job
+	err error
 }
 
 // NewIntervalJob creates a new IntervalJob with the specified interval.
@@ -70,6 +83,13 @@ func (c *IntervalJob) Names(name string) *IntervalJob {
 		name = uuid.New().String()
 	}
 	c.Name = name
+	return c
+}
+
+// Tag adds a tag to the IntervalJob.
+// Tag 添加一个标签到 IntervalJob
+func (c *IntervalJob) Tag(tags ...string) *IntervalJob {
+	c.Tags = tags
 	return c
 }
 

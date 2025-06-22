@@ -13,6 +13,7 @@ type CronJobClientInterface interface {
 	Alias(alias string) *CronJob
 	JobID(id string) *CronJob
 	Name(name string) *CronJob
+	Tags(tags ...string) *CronJob
 	Task(task any, parameters ...any) *CronJob
 	Timeout(timeout time.Duration) *CronJob
 	Watch(watch func(event JobWatchInterface)) *CronJob
@@ -50,6 +51,10 @@ func (c *CronJobClient) JobID(id string) *CronJob {
 
 func (c *CronJobClient) Name(name string) *CronJob {
 	return c.job.Names(name)
+}
+
+func (c *CronJobClient) Tags(tags ...string) *CronJob {
+	return c.job.Tag(tags...)
 }
 
 func (c *CronJobClient) Task(task any, parameters ...any) *CronJob {

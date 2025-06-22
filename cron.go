@@ -14,26 +14,37 @@ import (
 // CronJob represents a job that runs based on a cron expression.
 // CronJob 表示一个基于 cron 表达式运行的任务。
 type CronJob struct {
-	ID string // Unique identifier for the job
 	// 任务的唯一标识符
-	Ali string // Alias for the job
+	// Unique identifier for the job
+	ID string
+	// Alias for the job
 	// 任务的别名
-	Name string // Name of the job
+	Ali string
+	// Name of the job
 	// 任务名称
-	Expr string // Cron expression for scheduling
+	Name string
+	// Cron expression for scheduling
 	// 用于调度的 cron 表达式
-	TaskFunc any // The function to execute as the job
+	Expr string
+	// The function to execute as the job
 	// 作为任务执行的函数
-	Parameters []any // Parameters to pass to the task function
+	Tags     []string
+	TaskFunc any
+	// Parameters to pass to the task function
 	// 传递给任务函数的参数
-	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	Parameters []any
+	// Event hooks for job lifecycle events
 	// 任务生命周期事件的钩子
-	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	Hooks []gocron.EventListener
+	// Function to watch job events
 	// 监听任务事件的函数
-	timeout time.Duration // Timeout for the job execution
+	WatchFunc func(event JobWatchInterface)
+	// Timeout for the job execution
 	// 任务执行的超时时间
-	err error // Error state for the job
-	// 任务的错误状态
+	timeout time.Duration
+	// Timeout for the job execution
+	// 任务执行的超时时间
+	err error
 }
 
 // NewCronJob creates a new CronJob with the specified cron expression.
@@ -73,6 +84,11 @@ func (c *CronJob) Names(name string) *CronJob {
 		name = uuid.New().String()
 	}
 	c.Name = name
+	return c
+}
+
+func (c *CronJob) Tag(tags ...string) *CronJob {
+	c.Tags = tags
 	return c
 }
 

@@ -14,30 +14,45 @@ import (
 // WeeklyJob represents a job that runs on a weekly schedule.
 // WeeklyJob 表示一个按周调度运行的任务。
 type WeeklyJob struct {
-	ID string // Unique identifier for the job
+	// Unique identifier for the job
 	// 任务的唯一标识符
-	Ali string // Alias for the job
+	ID string
+	// Alias for the job
 	// 任务的别名
-	Name string // Name of the job
+	Ali string
+	// Name of the job
 	// 任务名称
-	Interval uint // Interval in weeks between job runs
+	Name string
+	// Interval in weeks between job runs
 	// 任务运行的周数间隔
-	DaysOfTheWeek gocron.Weekdays // Days of the week to run the job
+	Interval uint
+	// Days of the week to run the job
 	// 任务每周运行的具体星期几
-	WorkTimes gocron.AtTimes // Specific times of day to run the job
+	DaysOfTheWeek gocron.Weekdays
+	// Specific times of day to run the job
 	// 任务每天运行的具体时间点
-	TaskFunc any // The function to execute as the job
+	WorkTimes gocron.AtTimes
+	// Tag for the job
+	// 任务的标签
+	Tag []string
+	// The function to execute as the job
 	// 作为任务执行的函数
-	Parameters []any // Parameters to pass to the task function
+	TaskFunc any
+	// Parameters to pass to the task function
 	// 传递给任务函数的参数
-	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	Parameters []any
+	// Event hooks for job lifecycle events
 	// 任务生命周期事件的钩子
-	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	Hooks []gocron.EventListener
+	// Function to watch job events
 	// 监听任务事件的函数
-	timeout time.Duration // Timeout for the job execution
+	WatchFunc func(event JobWatchInterface)
+	// Timeout for the job execution
 	// 任务执行的超时时间
-	err error // Error state for the job
+	timeout time.Duration
+	// Error state for the job
 	// 任务的错误状态
+	err error
 }
 
 func NewWeeklyJob(interval uint, days gocron.Weekdays, atTime gocron.AtTimes) *WeeklyJob {
@@ -97,6 +112,13 @@ func (c *WeeklyJob) Names(name string) *WeeklyJob {
 		name = uuid.New().String()
 	}
 	c.Name = name
+	return c
+}
+
+// Tags sets the tags for the WeeklyJob.
+// Tags 设置 WeeklyJob 的标签
+func (c *WeeklyJob) Tags(tags ...string) *WeeklyJob {
+	c.Tag = tags
 	return c
 }
 

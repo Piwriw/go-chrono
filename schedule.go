@@ -766,7 +766,7 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 		}
 	}
 	opts := make([]gocron.JobOption, 0)
-	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name))
+	opts = append(opts, gocron.WithEventListeners(job.Hooks...), gocron.WithName(job.Name), gocron.WithTags(job.Tag...))
 	if job.ID != "" {
 		jobID, err := uuid.Parse(job.ID)
 		if err != nil {

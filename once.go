@@ -16,6 +16,7 @@ type OnceJob struct {
 	Ali        string
 	Name       string
 	WorkTime   []time.Time
+	Tag        []string
 	TaskFunc   any
 	Parameters []any
 	Hooks      []gocron.EventListener
@@ -48,6 +49,11 @@ func (c *OnceJob) Names(name string) *OnceJob {
 		name = uuid.New().String()
 	}
 	c.Name = name
+	return c
+}
+
+func (c *OnceJob) Tags(tags ...string) *OnceJob {
+	c.Tag = tags
 	return c
 }
 

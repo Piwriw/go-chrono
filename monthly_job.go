@@ -14,30 +14,45 @@ import (
 // MonthJob represents a job that runs on a monthly schedule.
 // MonthJob 表示一个按月调度运行的任务。
 type MonthJob struct {
-	ID string // Unique identifier for the job
+	// Unique identifier for the job
 	// 任务的唯一标识符
-	Ali string // Alias for the job
+	ID string
+	// Alias for the job
 	// 任务的别名
-	Name string // Name of the job
+	Ali string
+	// Name of the job
 	// 任务名称
-	Interval uint // Interval in months between job runs
+	Name string
+	// Interval in months between job runs
 	// 任务运行的月数间隔
-	DaysOfTheMonth gocron.DaysOfTheMonth // Days of the month to run the job
+	Interval uint
+	// Days of the month to run the job
 	// 任务每月运行的具体日期
-	AtTimes gocron.AtTimes // Specific times of day to run the job
+	DaysOfTheMonth gocron.DaysOfTheMonth
+	// Specific times of day to run the job
 	// 任务每天运行的具体时间点
-	TaskFunc any // The function to execute as the job
+	AtTimes gocron.AtTimes
+	// Tags for the job
+	// 任务的标签
+	Tag []string
+	// The function to execute as the job
 	// 作为任务执行的函数
-	Parameters []any // Parameters to pass to the task function
+	TaskFunc any
+	// Parameters to pass to the task function
 	// 传递给任务函数的参数
-	Hooks []gocron.EventListener // Event hooks for job lifecycle events
+	Parameters []any
+	// Event hooks for job lifecycle events
 	// 任务生命周期事件的钩子
-	WatchFunc func(event JobWatchInterface) // Function to watch job events
+	Hooks []gocron.EventListener
+	// Function to watch job events
 	// 监听任务事件的函数
-	timeout time.Duration // Timeout for the job execution
+	WatchFunc func(event JobWatchInterface)
+	// Timeout for the job execution
 	// 任务执行的超时时间
-	err error // Error state for the job
+	timeout time.Duration
+	// Error state for the job
 	// 任务的错误状态
+	err error
 }
 
 func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTimes) *MonthJob {
@@ -98,6 +113,13 @@ func (c *MonthJob) Names(name string) *MonthJob {
 		name = uuid.New().String()
 	}
 	c.Name = name
+	return c
+}
+
+// Tags sets the tags for the MonthJob.
+// Tags 设置 MonthJob 的标签
+func (c *MonthJob) Tags(tags ...string) *MonthJob {
+	c.Tag = tags
 	return c
 }
 

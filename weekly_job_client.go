@@ -13,6 +13,7 @@ type WeeklyJobClientInterface interface {
 	Alias(alias string) *WeeklyJob
 	JobID(id string) *WeeklyJob
 	Name(name string) *WeeklyJob
+	Tags(tags ...string) *WeeklyJob
 	Task(task any, parameters ...any) *WeeklyJob
 	Timeout(timeout time.Duration) *WeeklyJob
 	Watch(watch func(event JobWatchInterface)) *WeeklyJob
@@ -50,6 +51,10 @@ func (w *WeeklyJobClient) JobID(id string) *WeeklyJob {
 
 func (w *WeeklyJobClient) Name(name string) *WeeklyJob {
 	return w.job.Names(name)
+}
+
+func (w *WeeklyJobClient) Tags(tags ...string) *WeeklyJob {
+	return w.job.Tags(tags...)
 }
 
 func (w *WeeklyJobClient) Task(task any, parameters ...any) *WeeklyJob {

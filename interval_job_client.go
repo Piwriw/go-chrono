@@ -13,6 +13,7 @@ type IntervalJobClientInterface interface {
 	Alias(alias string) *IntervalJob
 	JobID(id string) *IntervalJob
 	Name(name string) *IntervalJob
+	Tag(tags ...string) *IntervalJob
 	Task(task any, parameters ...any) *IntervalJob
 	Timeout(timeout time.Duration) *IntervalJob
 	Watch(watch func(event JobWatchInterface)) *IntervalJob
@@ -50,6 +51,10 @@ func (c *IntervalJobClient) JobID(id string) *IntervalJob {
 
 func (c *IntervalJobClient) Name(name string) *IntervalJob {
 	return c.job.Names(name)
+}
+
+func (c *IntervalJobClient) Tag(tags ...string) *IntervalJob {
+	return c.job.Tag(tags...)
 }
 
 func (c *IntervalJobClient) Task(task any, parameters ...any) *IntervalJob {

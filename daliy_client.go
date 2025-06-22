@@ -13,6 +13,7 @@ type DailyJobClientInterface interface {
 	Alias(alias string) *DailyJob
 	JobID(id string) *DailyJob
 	Name(name string) *DailyJob
+	Tags(tags ...string) *DailyJob
 	Task(task any, parameters ...any) *DailyJob
 	Timeout(timeout time.Duration) *DailyJob
 	Watch(watch func(event JobWatchInterface)) *DailyJob
@@ -50,6 +51,10 @@ func (c *DailyJobClient) JobID(id string) *DailyJob {
 
 func (c *DailyJobClient) Name(name string) *DailyJob {
 	return c.job.Names(name)
+}
+
+func (c *DailyJobClient) Tags(tags ...string) *DailyJob {
+	return c.job.Tag(tags...)
 }
 
 func (c *DailyJobClient) Task(task any, parameters ...any) *DailyJob {

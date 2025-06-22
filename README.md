@@ -17,7 +17,8 @@
 - [ ] 允许自定义实现JobClient
 - [x] 设置Schedule最大管控调用任务数量
 - [ ] 自定义Logger
-- [ ] Job分组级别管控
+- [x] Job标签级别管控
+  - 缺少移除func
 - [x] 优雅终止关闭
 - [x] 监控模式
   - [ ]  Prometheus端点监控

@@ -13,6 +13,7 @@ type OnceJobClientInterface interface {
 	Alias(alias string) *OnceJob
 	JobID(id string) *OnceJob
 	Name(name string) *OnceJob
+	Tag(tags ...string) *OnceJob
 	Task(task any, parameters ...any) *OnceJob
 	Timeout(timeout time.Duration) *OnceJob
 	Watch(watch func(event JobWatchInterface)) *OnceJob
@@ -50,6 +51,10 @@ func (o *OnceJobClient) JobID(id string) *OnceJob {
 
 func (o *OnceJobClient) Name(name string) *OnceJob {
 	return o.job.Names(name)
+}
+
+func (o *OnceJobClient) Tag(tags ...string) *OnceJob {
+	return o.job.Tags(tags...)
 }
 
 func (o *OnceJobClient) Task(task any, parameters ...any) *OnceJob {

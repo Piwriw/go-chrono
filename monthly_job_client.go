@@ -13,6 +13,7 @@ type MonthJobClientInterface interface {
 	Alias(alias string) *MonthJob
 	JobID(id string) *MonthJob
 	Name(name string) *MonthJob
+	Tags(tags ...string) *MonthJob
 	Task(task any, parameters ...any) *MonthJob
 	Timeout(timeout time.Duration) *MonthJob
 	Watch(watch func(event JobWatchInterface)) *MonthJob
@@ -50,6 +51,10 @@ func (m *MonthJobClient) JobID(id string) *MonthJob {
 
 func (m *MonthJobClient) Name(name string) *MonthJob {
 	return m.job.Names(name)
+}
+
+func (m *MonthJobClient) Tags(tags ...string) *MonthJob {
+	return m.job.Tags(tags...)
 }
 
 func (m *MonthJobClient) Task(task any, parameters ...any) *MonthJob {
