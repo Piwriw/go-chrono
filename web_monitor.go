@@ -13,16 +13,18 @@ import (
 )
 
 type WebMonitor struct {
-	scheduler *Scheduler
-	addr      string
-	server    *http.Server
-	mu        sync.Mutex
+	scheduler       *Scheduler
+	scheduleMonitor SchedulerMonitor
+	addr            string
+	server          *http.Server
+	mu              sync.Mutex
 }
 
 func NewWebMonitor(s *Scheduler, addr string) *WebMonitor {
 	return &WebMonitor{
-		scheduler: s,
-		addr:      addr,
+		scheduler:       s,
+		addr:            addr,
+		scheduleMonitor: s.monitor,
 	}
 }
 
@@ -98,6 +100,7 @@ type JobMonitorSpec struct {
 	Alias   *string    `json:"alias"`
 	LastRun *time.Time `json:"last_run"`
 	NextRun *time.Time `json:"next_run"`
+	Events  []JobEvent `json:"events"`
 }
 
 func (j JobMonitorSpec) MarshalJSON() ([]byte, error) {
@@ -136,9 +139,11 @@ func (wm *WebMonitor) handleJobs(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			http.Error(w, "failed to get job last and next", http.StatusInternalServerError)
 		}
+		events := wm.scheduleMonitor.GetJobEvents(job.ID().String())
 		spec := JobMonitorSpec{
-			ID:   job.ID().String(),
-			Name: job.Name(),
+			ID:     job.ID().String(),
+			Name:   job.Name(),
+			Events: events,
 		}
 		if !last.IsZero() {
 			spec.LastRun = &last
