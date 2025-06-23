@@ -10,9 +10,9 @@ const (
 	LimitOptionName      = "limit"
 )
 
-// ChronoOption is the interface for options in chrono.
-// ChronoOption 是 chrono 中选项的接口。
-type ChronoOption interface {
+// ScheduleOption is the interface for options in chrono.
+// ScheduleOption 是 chrono 中选项的接口。
+type ScheduleOption interface {
 	// Name Returns the name of the option
 	// 返回选项名称
 	Name() string
@@ -44,16 +44,17 @@ func (w *WebMonitorOption) Address() string {
 	return w.address
 }
 
-var _ ChronoOption = &WebMonitorOption{}
+var _ ScheduleOption = &WebMonitorOption{}
 
 // AliasOption represents the alias option.
 // AliasOption 表示别名选项。
 type AliasOption struct {
-	enabled bool // Whether the alias option is enabled
+	// Whether the alias option is enabled
 	// 是否启用别名选项
+	enabled bool
 }
 
-var _ ChronoOption = &AliasOption{}
+var _ ScheduleOption = &AliasOption{}
 
 // Name returns the name of the alias option.
 // Name 返回别名选项的名称。
@@ -76,7 +77,7 @@ type WatchOption struct {
 	watchFunc func(event JobWatchInterface)
 }
 
-var _ ChronoOption = &WatchOption{}
+var _ ScheduleOption = &WatchOption{}
 
 // Name returns the name of the watch option.
 // Name 返回监听选项的名称。
@@ -103,7 +104,7 @@ type TimeoutOption struct {
 	timeout time.Duration
 }
 
-var _ ChronoOption = &TimeoutOption{}
+var _ ScheduleOption = &TimeoutOption{}
 
 func (t *TimeoutOption) Name() string {
 	return TimoutOptionName
@@ -122,7 +123,7 @@ type LimitOption struct {
 	number  int
 }
 
-var _ ChronoOption = &LimitOption{}
+var _ ScheduleOption = &LimitOption{}
 
 func (l *LimitOption) Name() string {
 	return LimitOptionName

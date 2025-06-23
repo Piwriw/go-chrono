@@ -58,7 +58,7 @@ type Scheduler struct {
 type SchedulerOptions struct {
 	// 别名选项
 	// Alias option
-	alias ChronoOption
+	alias *AliasOption
 	// Watch option
 	// 监听选项
 	watch *WatchOption
@@ -114,7 +114,7 @@ func WithAliasMode() SchedulerOption {
 // WithWatch 设置监听选项。
 func WithWatch(watchFunc func(event JobWatchInterface)) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.alias = &WatchOption{enabled: true, watchFunc: watchFunc}
+		s.watch = &WatchOption{enabled: true, watchFunc: watchFunc}
 	}
 }
 
