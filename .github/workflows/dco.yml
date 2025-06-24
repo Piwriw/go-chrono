@@ -1,0 +1,19 @@
+name: Check Signed-off-by
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, edited]
+
+jobs:
+  dco:
+    env:
+      name: production
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: DCO Sign-off Check
+        uses: docker://ghcr.io/cclauss/dco-check:latest
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
