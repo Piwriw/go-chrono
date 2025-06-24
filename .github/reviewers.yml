@@ -1,0 +1,14 @@
+# .github/reviewers.yml
+groups:
+  # 定义评审组
+  maintainers:  # 维护者组:
+    reviewers:  # 个人评审者列表
+      - piwriw
+
+
+rules:
+  # 定义路径匹配规则
+  - paths:
+      - "**"  # 通配符匹配
+    groups: [maintainers]     # 应用的评审组
+    required: 1         # 需要的最少评审人数
