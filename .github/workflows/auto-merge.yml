@@ -14,6 +14,8 @@ on:
       - completed
   status: { }
 jobs:
+  env:
+    name: production
   automerge:
     runs-on: ubuntu-latest
     permissions:
