@@ -717,3 +717,29 @@ func TestLimit(t *testing.T) {
 	case <-time.After(time.Minute * 10):
 	}
 }
+
+func TestWeb(t *testing.T) {
+	monitor := newDefaultSchedulerMonitor(WithMaxRecords(3), WithEventIDGenerator(&TimeEventIDGenerator{}))
+	scheduler, err := NewScheduler(context.TODO(), monitor, WithWebMonitor("localhost:8080"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := NewIntervalJob(time.Second*10).
+		Task(task, 1, 2).Names("TestWebMonitor")
+
+	_, err = scheduler.AddIntervalJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Minute * 10):
+	}
+}

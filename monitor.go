@@ -14,6 +14,8 @@ const (
 	defaultMaxRecords = 3 // 默认最大记录数
 )
 
+var defaultEventIDGenerator = &UUIDEventIDGenerator{}
+
 // JobWatchInterface defines the interface for job event watching.
 // JobWatchInterface 定义了任务事件监听的接口。
 type JobWatchInterface interface {
@@ -62,6 +64,7 @@ type defaultSchedulerMonitor struct {
 	jobChan    chan JobWatchInterface
 	maxRecords int
 	jobRecord  map[string]MonitorJobSpec
+	eventIDCli EventIDGenerator
 }
 
 var _ SchedulerMonitor = (*defaultSchedulerMonitor)(nil)
@@ -72,8 +75,19 @@ func WithMaxRecords(maxRecords int) func(*defaultSchedulerMonitor) {
 	return func(s *defaultSchedulerMonitor) {
 		if s.maxRecords <= 0 {
 			s.maxRecords = defaultMaxRecords
+			return
 		}
 		s.maxRecords = maxRecords
+	}
+}
+
+func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedulerMonitor) {
+	return func(s *defaultSchedulerMonitor) {
+		if eventIDGenerator == nil {
+			s.eventIDCli = defaultEventIDGenerator
+			return
+		}
+		s.eventIDCli = eventIDGenerator
 	}
 }
 
@@ -84,9 +98,11 @@ func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName strin
 	if !ok {
 		// 如果不存在，创建一个新的事件记录
 		event = MonitorJobSpec{
-			JobID:     jobID,
-			JobName:   jobName,
-			Tags:      jobTags,
+			JobSpec: JobSpec{
+				JobID:   jobID.String(),
+				JobName: jobName,
+				Tags:    jobTags,
+			},
 			JobEvents: []JobEvent{jobnewEvent},
 		}
 	}
@@ -115,21 +131,38 @@ func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []JobEvent {
 // MonitorJobSpec represents the specification of a monitored job.
 // MonitorJobSpec 表示被监控任务的规范。
 type MonitorJobSpec struct {
+	JobSpec   JobSpec
+	JobEvents []JobEvent
+}
+
+type JobSpec struct {
 	// Job ID
 	// 任务 ID
-	JobID uuid.UUID
+	JobID string
 	// Job name
 	// 任务名称
 	JobName string
 	// Job tags
 	// 任务标签
-	Tags      []string
-	JobEvents []JobEvent
+	Tags []string
+}
+
+// GetJobID gets the job ID.
+// GetJobID 获取任务 ID。
+func (m MonitorJobSpec) GetJobID() string {
+	return m.JobSpec.JobID
+}
+
+// GetJobName gets the job name.
+// GetJobName 获取任务名称。
+func (m MonitorJobSpec) GetJobName() string {
+	return m.JobSpec.JobName
 }
 
 var _ JobWatchInterface = (*MonitorJobSpec)(nil)
 
 type JobEvent struct {
+	EventID string
 	// Start time
 	// 开始时间
 	StartTime time.Time
@@ -144,8 +177,9 @@ type JobEvent struct {
 	Err error
 }
 
-func (j JobEvent) MarshalJSON() ([]byte, error) {
+func (m JobEvent) MarshalJSON() ([]byte, error) {
 	type Alias struct {
+		EventID   string           `json:"event_id"`
 		StartTime string           `json:"start_time"`
 		EndTime   string           `json:"end_time"`
 		Status    gocron.JobStatus `json:"status"`
@@ -153,28 +187,17 @@ func (j JobEvent) MarshalJSON() ([]byte, error) {
 	}
 
 	var errStr string
-	if j.Err != nil {
-		errStr = j.Err.Error()
+	if m.Err != nil {
+		errStr = m.Err.Error()
 	}
 
 	return json.Marshal(&Alias{
-		StartTime: j.StartTime.Format(time.DateTime),
-		EndTime:   j.EndTime.Format(time.DateTime),
-		Status:    j.Status,
+		EventID:   m.EventID,
+		StartTime: m.StartTime.Format(time.DateTime),
+		EndTime:   m.EndTime.Format(time.DateTime),
+		Status:    m.Status,
 		Err:       errStr,
 	})
-}
-
-// GetJobID gets the job ID.
-// GetJobID 获取任务 ID。
-func (m MonitorJobSpec) GetJobID() string {
-	return m.JobID.String()
-}
-
-// GetJobName gets the job name.
-// GetJobName 获取任务名称。
-func (m MonitorJobSpec) GetJobName() string {
-	return m.JobName
 }
 
 // GetStartTime gets the job start time.
@@ -198,7 +221,7 @@ func (m JobEvent) GetStatus() gocron.JobStatus {
 // GetTags gets the job tags.
 // GetTags 获取任务标签。
 func (m MonitorJobSpec) GetTags() []string {
-	return m.Tags
+	return m.JobSpec.Tags
 }
 
 // Error gets the job error.
@@ -221,10 +244,11 @@ func (m JobEvent) Error() error {
 // newDefaultSchedulerMonitor 创建一个默认的调度器监控。
 func newDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedulerMonitor {
 	defaultSchedulerMonitor := &defaultSchedulerMonitor{
-		counter:   make(map[string]int),
-		time:      make(map[string][]time.Duration),
-		jobChan:   make(chan JobWatchInterface, 100),
-		jobRecord: make(map[string]MonitorJobSpec),
+		counter:    make(map[string]int),
+		time:       make(map[string][]time.Duration),
+		jobChan:    make(chan JobWatchInterface, 100),
+		jobRecord:  make(map[string]MonitorJobSpec),
+		eventIDCli: defaultEventIDGenerator,
 	}
 	for _, opt := range opts {
 		opt(defaultSchedulerMonitor)
@@ -266,19 +290,23 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 	defer s.mu.Unlock()
 	slog.Debug("chrono:RecordJobTimingWithStatus", "JobID", id, "JobName", name, "startTime", startTime.Format(time.DateTime),
 		"endTime", endTime.Format(time.DateTime), "duration", endTime.Sub(startTime), "status", status, "err", err)
-	jobSpec := MonitorJobSpec{
-		JobID:     id,
-		JobName:   name,
-		Tags:      tags,
+	jobSpec := JobSpec{
+		JobID:   id.String(),
+		JobName: name,
+		Tags:    tags,
+	}
+	jobMonitorSpec := MonitorJobSpec{
+		JobSpec:   jobSpec,
 		JobEvents: []JobEvent{},
 	}
 	s.UpdateJobEvents(id, name, JobEvent{
+		EventID:   s.eventIDCli.NextID(jobSpec),
 		StartTime: startTime,
 		EndTime:   endTime,
 		Status:    status,
 		Err:       err,
 	})
-	s.jobChan <- jobSpec
+	s.jobChan <- jobMonitorSpec
 }
 
 // Watch watches the execution of jobs.
