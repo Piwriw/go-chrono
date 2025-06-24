@@ -2,10 +2,11 @@ package chrono
 
 import (
 	"encoding/json"
-	"github.com/go-co-op/gocron/v2"
 	"log/slog"
 	"sync"
 	"time"
+
+	"github.com/go-co-op/gocron/v2"
 
 	"github.com/google/uuid"
 )

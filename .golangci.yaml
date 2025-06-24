@@ -6,9 +6,6 @@ run:
   modules-download-mode: readonly
 
 linters:
-  exclusions:
-    paths:
-      - ".*_test\\.go$"
   enable:
     - errcheck # 错误检查
     - gocyclo # 巡检依赖
@@ -77,3 +74,6 @@ formatters:
 issues:
   max-issues-per-linter: 100
   max-same-issues: 10
+  exclude-rules:
+    - path: "_test\\.go$"
+      text: ".*"
