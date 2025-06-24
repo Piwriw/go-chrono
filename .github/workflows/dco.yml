@@ -5,15 +5,14 @@ on:
     types: [opened, synchronize, reopened, edited]
 
 jobs:
-  dco:
-    env:
-      name: production
+  check_dco:
     runs-on: ubuntu-latest
+    name: Check DCO
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Check DCO sign-off
-        uses: lucacome/dco-check@v1
+      - name: Run dco-check
+        uses: christophebedard/dco-check@0.5.0
         with:
-          fail-on-error: true
+          python-version: '3.12'
+          args: '--verbose'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
