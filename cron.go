@@ -55,9 +55,8 @@ func NewCronJob(expr string) *CronJob {
 	}
 }
 
-// Error returns the error message associated with the CronJob, if any.
-// Error 返回与 CronJob 相关的错误信息（如果有）。
-
+// CronExpr sets the cron expression for the CronJob.
+// CronExpr 设置 cron 表达式。
 func (c *CronJob) CronExpr(expr string) *CronJob {
 	c.Expr = expr
 	return c
