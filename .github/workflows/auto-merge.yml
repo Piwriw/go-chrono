@@ -14,10 +14,10 @@ on:
       - completed
   status: { }
 jobs:
-  env:
-    name: production
   automerge:
     runs-on: ubuntu-latest
+    env:
+      name: production
     permissions:
       contents: write
       pull-requests: write
