@@ -13,7 +13,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: DCO Sign-off Check
-        uses: docker://ghcr.io/cclauss/dco-check:latest
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Check DCO sign-off
+        uses: lucacome/dco-check@v1
+        with:
+          fail-on-error: true
