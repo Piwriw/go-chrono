@@ -22,7 +22,7 @@
   - 缺少移除func
 - [x] 优雅终止关闭
 - [x] 监控模式
-  - [ ]  Prometheus端点监控
+  - [x]  Prometheus端点监控
   - [x]  Listen Web监控
   - [x]  可以查询最近X次的执行结果
      - [ ]  支持查询指定时间范围的执行结果
