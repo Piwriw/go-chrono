@@ -306,10 +306,6 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 		JobName: name,
 		Tags:    tags,
 	}
-	jobMonitorSpec := MonitorJobSpec{
-		JobSpec:   jobSpec,
-		JobEvents: []*JobEvent{},
-	}
 
 	newEvent := &JobEvent{
 		EventID:   s.eventIDCli.NextID(jobSpec),
@@ -321,7 +317,7 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 
 	s.UpdateJobEvents(id, name, newEvent)
 	// 创建包含新事件的 MonitorJobSpec
-	jobMonitorSpec = MonitorJobSpec{
+	jobMonitorSpec := MonitorJobSpec{
 		JobSpec:   jobSpec,
 		JobEvents: []*JobEvent{newEvent}, // 包含当前事件
 	}
