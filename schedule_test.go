@@ -729,3 +729,34 @@ func TestWithPrometheus(t *testing.T) {
 	case <-time.After(time.Minute * 10):
 	}
 }
+func TestIntervalJobClient(t *testing.T) {
+	monitor := newDefaultSchedulerMonitor(WithMaxRecords(3))
+	scheduler, err := NewScheduler(context.TODO(),
+		monitor,
+		WithWatch(nil),
+		WithWebMonitor("localhost:8080"),
+		WithPrometheus("localhost:8888"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	_, err = scheduler.IntervalJob().
+		Interval(time.Second*10).
+		Task(task, 1, 2).
+		Name("TestWebMonitor").
+		Watch(EmptyWatchFunc).Add()
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	go scheduler.Watch()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Minute * 10):
+	}
+}

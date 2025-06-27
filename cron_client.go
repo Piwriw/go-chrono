@@ -9,21 +9,21 @@ import (
 
 type CronJobClientInterface interface {
 	// CronExpr Linux Cron 表达式必须填写
-	CronExpr(expr string) *CronJob
-	Alias(alias string) *CronJob
-	JobID(id string) *CronJob
-	Name(name string) *CronJob
-	Tags(tags ...string) *CronJob
-	Task(task any, parameters ...any) *CronJob
-	Timeout(timeout time.Duration) *CronJob
-	Watch(watch func(event JobWatchInterface)) *CronJob
-	DefaultHooks() *CronJob
-	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob
-	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *CronJob
-	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob
-	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob
-	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *CronJob
-	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob
+	CronExpr(expr string) CronJobClientInterface
+	Alias(alias string) CronJobClientInterface
+	JobID(id string) CronJobClientInterface
+	Name(name string) CronJobClientInterface
+	Tags(tags ...string) CronJobClientInterface
+	Task(task any, parameters ...any) CronJobClientInterface
+	Timeout(timeout time.Duration) CronJobClientInterface
+	Watch(watch func(event JobWatchInterface)) CronJobClientInterface
+	DefaultHooks() CronJobClientInterface
+	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) CronJobClientInterface
+	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) CronJobClientInterface
+	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) CronJobClientInterface
+	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) CronJobClientInterface
+	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) CronJobClientInterface
+	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) CronJobClientInterface
 	Add() (gocron.Job, error)
 	BatchAdd(cronJobs ...*CronJob) ([]gocron.Job, error)
 	Remove() error
@@ -37,64 +37,79 @@ type CronJobClient struct {
 
 var _ CronJobClientInterface = (*CronJobClient)(nil)
 
-func (c *CronJobClient) CronExpr(expr string) *CronJob {
-	return c.job.CronExpr(expr)
+func (c *CronJobClient) CronExpr(expr string) CronJobClientInterface {
+	c.job.CronExpr(expr)
+	return c
 }
 
-func (c *CronJobClient) Alias(alias string) *CronJob {
-	return c.job.Alias(alias)
+func (c *CronJobClient) Alias(alias string) CronJobClientInterface {
+	c.job.Alias(alias)
+	return c
 }
 
-func (c *CronJobClient) JobID(id string) *CronJob {
-	return c.job.JobID(id)
+func (c *CronJobClient) JobID(id string) CronJobClientInterface {
+	c.job.JobID(id)
+	return c
 }
 
-func (c *CronJobClient) Name(name string) *CronJob {
-	return c.job.Names(name)
+func (c *CronJobClient) Name(name string) CronJobClientInterface {
+	c.job.Names(name)
+	return c
 }
 
-func (c *CronJobClient) Tags(tags ...string) *CronJob {
-	return c.job.Tag(tags...)
+func (c *CronJobClient) Tags(tags ...string) CronJobClientInterface {
+	c.job.Tag(tags...)
+	return c
 }
 
-func (c *CronJobClient) Task(task any, parameters ...any) *CronJob {
-	return c.job.Task(task, parameters...)
+func (c *CronJobClient) Task(task any, parameters ...any) CronJobClientInterface {
+	c.job.Task(task, parameters...)
+	return c
 }
 
-func (c *CronJobClient) Timeout(timeout time.Duration) *CronJob {
-	return c.job.Timeout(timeout)
+func (c *CronJobClient) Timeout(timeout time.Duration) CronJobClientInterface {
+	c.job.Timeout(timeout)
+	return c
 }
 
-func (c *CronJobClient) Watch(watch func(event JobWatchInterface)) *CronJob {
-	return c.job.Watch(watch)
+func (c *CronJobClient) Watch(watch func(event JobWatchInterface)) CronJobClientInterface {
+	c.job.Watch(watch)
+	return c
 }
 
-func (c *CronJobClient) DefaultHooks() *CronJob {
-	return c.job.DefaultHooks()
+func (c *CronJobClient) DefaultHooks() CronJobClientInterface {
+	c.job.DefaultHooks()
+	return c
 }
 
-func (c *CronJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
-	return c.job.BeforeJobRuns(eventListenerFunc)
+func (c *CronJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) CronJobClientInterface {
+	c.job.BeforeJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *CronJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *CronJob {
-	return c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+func (c *CronJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) CronJobClientInterface {
+	c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return c
 }
 
-func (c *CronJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *CronJob {
-	return c.job.AfterJobRuns(eventListenerFunc)
+func (c *CronJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) CronJobClientInterface {
+	c.job.AfterJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *CronJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
-	return c.job.AfterJobRunsWithError(eventListenerFunc)
+func (c *CronJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) CronJobClientInterface {
+	c.job.AfterJobRunsWithError(eventListenerFunc)
+	return c
 }
 
-func (c *CronJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *CronJob {
-	return c.job.AfterJobRunsWithPanic(eventListenerFunc)
+func (c *CronJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) CronJobClientInterface {
+	c.job.AfterJobRunsWithPanic(eventListenerFunc)
+	return c
 }
 
-func (c *CronJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *CronJob {
-	return c.job.AfterLockError(eventListenerFunc)
+func (c *CronJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) CronJobClientInterface {
+	c.job.AfterLockError(eventListenerFunc)
+	return c
 }
 
 // Add 添加任务

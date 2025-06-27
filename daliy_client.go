@@ -9,21 +9,21 @@ import (
 
 type DailyJobClientInterface interface {
 	// AtDayTime 设置任务在每天的指定时间运行
-	AtDayTime(hour, minute, second uint) *DailyJob
-	Alias(alias string) *DailyJob
-	JobID(id string) *DailyJob
-	Name(name string) *DailyJob
-	Tags(tags ...string) *DailyJob
-	Task(task any, parameters ...any) *DailyJob
-	Timeout(timeout time.Duration) *DailyJob
-	Watch(watch func(event JobWatchInterface)) *DailyJob
-	DefaultHooks() *DailyJob
-	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *DailyJob
-	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *DailyJob
-	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *DailyJob
-	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob
-	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *DailyJob
-	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob
+	AtDayTime(hour, minute, second uint) DailyJobClientInterface
+	Alias(alias string) DailyJobClientInterface
+	JobID(id string) DailyJobClientInterface
+	Name(name string) DailyJobClientInterface
+	Tags(tags ...string) DailyJobClientInterface
+	Task(task any, parameters ...any) DailyJobClientInterface
+	Timeout(timeout time.Duration) DailyJobClientInterface
+	Watch(watch func(event JobWatchInterface)) DailyJobClientInterface
+	DefaultHooks() DailyJobClientInterface
+	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) DailyJobClientInterface
+	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) DailyJobClientInterface
+	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) DailyJobClientInterface
+	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) DailyJobClientInterface
+	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) DailyJobClientInterface
+	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) DailyJobClientInterface
 	Add() (gocron.Job, error)
 	BatchAdd(dailyJobs ...*DailyJob) ([]gocron.Job, error)
 	Remove() error
@@ -37,64 +37,79 @@ type DailyJobClient struct {
 
 var _ DailyJobClientInterface = (*DailyJobClient)(nil)
 
-func (c *DailyJobClient) AtDayTime(hour, minute, second uint) *DailyJob {
-	return c.job.AtDayTime(hour, minute, second)
+func (c *DailyJobClient) AtDayTime(hour, minute, second uint) DailyJobClientInterface {
+	c.job.AtDayTime(hour, minute, second)
+	return c
 }
 
-func (c *DailyJobClient) Alias(alias string) *DailyJob {
-	return c.job.Alias(alias)
+func (c *DailyJobClient) Alias(alias string) DailyJobClientInterface {
+	c.job.Alias(alias)
+	return c
 }
 
-func (c *DailyJobClient) JobID(id string) *DailyJob {
-	return c.job.JobID(id)
+func (c *DailyJobClient) JobID(id string) DailyJobClientInterface {
+	c.job.JobID(id)
+	return c
 }
 
-func (c *DailyJobClient) Name(name string) *DailyJob {
-	return c.job.Names(name)
+func (c *DailyJobClient) Name(name string) DailyJobClientInterface {
+	c.job.Names(name)
+	return c
 }
 
-func (c *DailyJobClient) Tags(tags ...string) *DailyJob {
-	return c.job.Tag(tags...)
+func (c *DailyJobClient) Tags(tags ...string) DailyJobClientInterface {
+	c.job.Tag(tags...)
+	return c
 }
 
-func (c *DailyJobClient) Task(task any, parameters ...any) *DailyJob {
-	return c.job.Task(task, parameters...)
+func (c *DailyJobClient) Task(task any, parameters ...any) DailyJobClientInterface {
+	c.job.Task(task, parameters...)
+	return c
 }
 
-func (c *DailyJobClient) Timeout(timeout time.Duration) *DailyJob {
-	return c.job.Timeout(timeout)
+func (c *DailyJobClient) Timeout(timeout time.Duration) DailyJobClientInterface {
+	c.job.Timeout(timeout)
+	return c
 }
 
-func (c *DailyJobClient) Watch(watch func(event JobWatchInterface)) *DailyJob {
-	return c.job.Watch(watch)
+func (c *DailyJobClient) Watch(watch func(event JobWatchInterface)) DailyJobClientInterface {
+	c.job.Watch(watch)
+	return c
 }
 
-func (c *DailyJobClient) DefaultHooks() *DailyJob {
-	return c.job.DefaultHooks()
+func (c *DailyJobClient) DefaultHooks() DailyJobClientInterface {
+	c.job.DefaultHooks()
+	return c
 }
 
-func (c *DailyJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *DailyJob {
-	return c.job.BeforeJobRuns(eventListenerFunc)
+func (c *DailyJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) DailyJobClientInterface {
+	c.job.BeforeJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *DailyJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *DailyJob {
-	return c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+func (c *DailyJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) DailyJobClientInterface {
+	c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return c
 }
 
-func (c *DailyJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *DailyJob {
-	return c.job.AfterJobRuns(eventListenerFunc)
+func (c *DailyJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) DailyJobClientInterface {
+	c.job.AfterJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *DailyJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob {
-	return c.job.AfterJobRunsWithError(eventListenerFunc)
+func (c *DailyJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) DailyJobClientInterface {
+	c.job.AfterJobRunsWithError(eventListenerFunc)
+	return c
 }
 
-func (c *DailyJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *DailyJob {
-	return c.job.AfterJobRunsWithPanic(eventListenerFunc)
+func (c *DailyJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) DailyJobClientInterface {
+	c.job.AfterJobRunsWithPanic(eventListenerFunc)
+	return c
 }
 
-func (c *DailyJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *DailyJob {
-	return c.job.AfterLockError(eventListenerFunc)
+func (c *DailyJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) DailyJobClientInterface {
+	c.job.AfterLockError(eventListenerFunc)
+	return c
 }
 
 func (c *DailyJobClient) Add() (gocron.Job, error) {

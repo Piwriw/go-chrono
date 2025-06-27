@@ -14,7 +14,8 @@
   - [x] Watch监听模式
   - [ ] 钩子函数
   - [ ] 重试策略(是否至少间隔多大?，防止溢出风险)
-- [ ] 允许自定义实现JobClient
+- [x] 允许自定义实现JobClient
+  - [ ] Example
 - [ ] 统一Time.Format格式
 - [x] 设置Schedule最大管控调用任务数量
 - [ ] 自定义Logger

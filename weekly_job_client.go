@@ -9,21 +9,21 @@ import (
 
 type WeeklyJobClientInterface interface {
 	// AtTimes 设置运行时间
-	AtTimes(days []time.Weekday, hour, minute, second uint) *WeeklyJob
-	Alias(alias string) *WeeklyJob
-	JobID(id string) *WeeklyJob
-	Name(name string) *WeeklyJob
-	Tags(tags ...string) *WeeklyJob
-	Task(task any, parameters ...any) *WeeklyJob
-	Timeout(timeout time.Duration) *WeeklyJob
-	Watch(watch func(event JobWatchInterface)) *WeeklyJob
-	DefaultHooks() *WeeklyJob
-	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *WeeklyJob
-	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *WeeklyJob
-	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *WeeklyJob
-	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *WeeklyJob
-	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *WeeklyJob
-	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *WeeklyJob
+	AtTimes(days []time.Weekday, hour, minute, second uint) WeeklyJobClientInterface
+	Alias(alias string) WeeklyJobClientInterface
+	JobID(id string) WeeklyJobClientInterface
+	Name(name string) WeeklyJobClientInterface
+	Tags(tags ...string) WeeklyJobClientInterface
+	Task(task any, parameters ...any) WeeklyJobClientInterface
+	Timeout(timeout time.Duration) WeeklyJobClientInterface
+	Watch(watch func(event JobWatchInterface)) WeeklyJobClientInterface
+	DefaultHooks() WeeklyJobClientInterface
+	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) WeeklyJobClientInterface
+	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) WeeklyJobClientInterface
+	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) WeeklyJobClientInterface
+	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) WeeklyJobClientInterface
+	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) WeeklyJobClientInterface
+	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) WeeklyJobClientInterface
 	Add() (gocron.Job, error)
 	BatchAdd(weeklyJobs ...*WeeklyJob) ([]gocron.Job, error)
 	Remove() error
@@ -37,64 +37,79 @@ type WeeklyJobClient struct {
 
 var _ WeeklyJobClientInterface = (*WeeklyJobClient)(nil)
 
-func (w *WeeklyJobClient) AtTimes(days []time.Weekday, hour, minute, second uint) *WeeklyJob {
-	return w.job.AtTimes(days, hour, minute, second)
+func (w *WeeklyJobClient) AtTimes(days []time.Weekday, hour, minute, second uint) WeeklyJobClientInterface {
+	w.job.AtTimes(days, hour, minute, second)
+	return w
 }
 
-func (w *WeeklyJobClient) Alias(alias string) *WeeklyJob {
-	return w.job.Alias(alias)
+func (w *WeeklyJobClient) Alias(alias string) WeeklyJobClientInterface {
+	w.job.Alias(alias)
+	return w
 }
 
-func (w *WeeklyJobClient) JobID(id string) *WeeklyJob {
-	return w.job.JobID(id)
+func (w *WeeklyJobClient) JobID(id string) WeeklyJobClientInterface {
+	w.job.JobID(id)
+	return w
 }
 
-func (w *WeeklyJobClient) Name(name string) *WeeklyJob {
-	return w.job.Names(name)
+func (w *WeeklyJobClient) Name(name string) WeeklyJobClientInterface {
+	w.job.Names(name)
+	return w
 }
 
-func (w *WeeklyJobClient) Tags(tags ...string) *WeeklyJob {
-	return w.job.Tags(tags...)
+func (w *WeeklyJobClient) Tags(tags ...string) WeeklyJobClientInterface {
+	w.job.Tags(tags...)
+	return w
 }
 
-func (w *WeeklyJobClient) Task(task any, parameters ...any) *WeeklyJob {
-	return w.job.Task(task, parameters...)
+func (w *WeeklyJobClient) Task(task any, parameters ...any) WeeklyJobClientInterface {
+	w.job.Task(task, parameters...)
+	return w
 }
 
-func (w *WeeklyJobClient) Timeout(timeout time.Duration) *WeeklyJob {
-	return w.job.Timeout(timeout)
+func (w *WeeklyJobClient) Timeout(timeout time.Duration) WeeklyJobClientInterface {
+	w.job.Timeout(timeout)
+	return w
 }
 
-func (w *WeeklyJobClient) Watch(watch func(event JobWatchInterface)) *WeeklyJob {
-	return w.job.Watch(watch)
+func (w *WeeklyJobClient) Watch(watch func(event JobWatchInterface)) WeeklyJobClientInterface {
+	w.job.Watch(watch)
+	return w
 }
 
-func (w *WeeklyJobClient) DefaultHooks() *WeeklyJob {
-	return w.job.DefaultHooks()
+func (w *WeeklyJobClient) DefaultHooks() WeeklyJobClientInterface {
+	w.job.DefaultHooks()
+	return w
 }
 
-func (w *WeeklyJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *WeeklyJob {
-	return w.job.BeforeJobRuns(eventListenerFunc)
+func (w *WeeklyJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) WeeklyJobClientInterface {
+	w.job.BeforeJobRuns(eventListenerFunc)
+	return w
 }
 
-func (w *WeeklyJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *WeeklyJob {
-	return w.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+func (w *WeeklyJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) WeeklyJobClientInterface {
+	w.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return w
 }
 
-func (w *WeeklyJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *WeeklyJob {
-	return w.job.AfterJobRuns(eventListenerFunc)
+func (w *WeeklyJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) WeeklyJobClientInterface {
+	w.job.AfterJobRuns(eventListenerFunc)
+	return w
 }
 
-func (w *WeeklyJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *WeeklyJob {
-	return w.job.AfterJobRunsWithError(eventListenerFunc)
+func (w *WeeklyJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) WeeklyJobClientInterface {
+	w.job.AfterJobRunsWithError(eventListenerFunc)
+	return w
 }
 
-func (w *WeeklyJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *WeeklyJob {
-	return w.job.AfterJobRunsWithPanic(eventListenerFunc)
+func (w *WeeklyJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) WeeklyJobClientInterface {
+	w.job.AfterJobRunsWithPanic(eventListenerFunc)
+	return w
 }
 
-func (w *WeeklyJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *WeeklyJob {
-	return w.job.AfterLockError(eventListenerFunc)
+func (w *WeeklyJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) WeeklyJobClientInterface {
+	w.job.AfterLockError(eventListenerFunc)
+	return w
 }
 
 func (w *WeeklyJobClient) Add() (gocron.Job, error) {

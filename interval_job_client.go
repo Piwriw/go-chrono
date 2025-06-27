@@ -9,21 +9,21 @@ import (
 
 type IntervalJobClientInterface interface {
 	// Interval 设置间隔时间
-	Interval(interval time.Duration) *IntervalJob
-	Alias(alias string) *IntervalJob
-	JobID(id string) *IntervalJob
-	Name(name string) *IntervalJob
-	Tag(tags ...string) *IntervalJob
-	Task(task any, parameters ...any) *IntervalJob
-	Timeout(timeout time.Duration) *IntervalJob
-	Watch(watch func(event JobWatchInterface)) *IntervalJob
-	DefaultHooks() *IntervalJob
-	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob
-	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *IntervalJob
-	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob
-	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob
-	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *IntervalJob
-	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob
+	Interval(interval time.Duration) IntervalJobClientInterface
+	Alias(alias string) IntervalJobClientInterface
+	JobID(id string) IntervalJobClientInterface
+	Name(name string) IntervalJobClientInterface
+	Tag(tags ...string) IntervalJobClientInterface
+	Task(task any, parameters ...any) IntervalJobClientInterface
+	Timeout(timeout time.Duration) IntervalJobClientInterface
+	Watch(watch func(event JobWatchInterface)) IntervalJobClientInterface
+	DefaultHooks() IntervalJobClientInterface
+	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) IntervalJobClientInterface
+	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) IntervalJobClientInterface
+	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) IntervalJobClientInterface
+	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) IntervalJobClientInterface
+	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) IntervalJobClientInterface
+	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) IntervalJobClientInterface
 	Add() (gocron.Job, error)
 	BatchAdd(intervalJobs ...*IntervalJob) ([]gocron.Job, error)
 	Remove() error
@@ -37,71 +37,86 @@ type IntervalJobClient struct {
 
 var _ IntervalJobClientInterface = (*IntervalJobClient)(nil)
 
-func (c *IntervalJobClient) Interval(interval time.Duration) *IntervalJob {
-	return c.job.IntervalTime(interval)
+func (c *IntervalJobClient) Interval(interval time.Duration) IntervalJobClientInterface {
+	c.job.IntervalTime(interval)
+	return c
 }
 
-func (c *IntervalJobClient) Alias(alias string) *IntervalJob {
-	return c.job.Alias(alias)
+func (c *IntervalJobClient) Alias(alias string) IntervalJobClientInterface {
+	c.job.Alias(alias)
+	return c
 }
 
-func (c *IntervalJobClient) JobID(id string) *IntervalJob {
-	return c.job.JobID(id)
+func (c *IntervalJobClient) JobID(id string) IntervalJobClientInterface {
+	c.job.JobID(id)
+	return c
 }
 
-func (c *IntervalJobClient) Name(name string) *IntervalJob {
-	return c.job.Names(name)
+func (c *IntervalJobClient) Name(name string) IntervalJobClientInterface {
+	c.job.Names(name)
+	return c
 }
 
-func (c *IntervalJobClient) Tag(tags ...string) *IntervalJob {
-	return c.job.Tag(tags...)
+func (c *IntervalJobClient) Tag(tags ...string) IntervalJobClientInterface {
+	c.job.Tag(tags...)
+	return c
 }
 
-func (c *IntervalJobClient) Task(task any, parameters ...any) *IntervalJob {
-	return c.job.Task(task, parameters...)
+func (c *IntervalJobClient) Task(task any, parameters ...any) IntervalJobClientInterface {
+	c.job.Task(task, parameters...)
+	return c
 }
 
-func (c *IntervalJobClient) Timeout(timeout time.Duration) *IntervalJob {
-	return c.job.Timeout(timeout)
+func (c *IntervalJobClient) Timeout(timeout time.Duration) IntervalJobClientInterface {
+	c.job.Timeout(timeout)
+	return c
 }
 
-func (c *IntervalJobClient) Watch(watch func(event JobWatchInterface)) *IntervalJob {
-	return c.job.Watch(watch)
+func (c *IntervalJobClient) Watch(watch func(event JobWatchInterface)) IntervalJobClientInterface {
+	c.job.Watch(watch)
+	return c
 }
 
-func (c *IntervalJobClient) DefaultHooks() *IntervalJob {
-	return c.job.DefaultHooks()
+func (c *IntervalJobClient) DefaultHooks() IntervalJobClientInterface {
+	c.job.DefaultHooks()
+	return c
 }
 
-func (c *IntervalJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob {
-	return c.job.BeforeJobRuns(eventListenerFunc)
+func (c *IntervalJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) IntervalJobClientInterface {
+	c.job.BeforeJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *IntervalJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *IntervalJob {
-	return c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+func (c *IntervalJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) IntervalJobClientInterface {
+	c.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return c
 }
 
-func (c *IntervalJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *IntervalJob {
-	return c.job.AfterJobRuns(eventListenerFunc)
+func (c *IntervalJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) IntervalJobClientInterface {
+	c.job.AfterJobRuns(eventListenerFunc)
+	return c
 }
 
-func (c *IntervalJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob {
-	return c.job.AfterJobRunsWithError(eventListenerFunc)
+func (c *IntervalJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) IntervalJobClientInterface {
+	c.job.AfterJobRunsWithError(eventListenerFunc)
+	return c
 }
 
-func (c *IntervalJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *IntervalJob {
-	return c.job.AfterJobRunsWithPanic(eventListenerFunc)
+func (c *IntervalJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) IntervalJobClientInterface {
+	c.job.AfterJobRunsWithPanic(eventListenerFunc)
+	return c
 }
 
-func (c *IntervalJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *IntervalJob {
-	return c.job.AfterLockError(eventListenerFunc)
+func (c *IntervalJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) IntervalJobClientInterface {
+	c.job.AfterLockError(eventListenerFunc)
+	return c
 }
 
 func (c *IntervalJobClient) Add() (gocron.Job, error) {
 	if c.scheduler == nil {
 		return nil, ErrScheduleNil
 	}
-	if c.job != nil {
+	if c.job == nil {
 		return nil, ErrIntervalJobNil
 	}
 	return c.scheduler.AddIntervalJob(c.job)
@@ -111,7 +126,7 @@ func (c *IntervalJobClient) BatchAdd(intervalJobs ...*IntervalJob) ([]gocron.Job
 	if c.scheduler == nil {
 		return nil, ErrScheduleNil
 	}
-	if c.job != nil {
+	if c.job == nil {
 		return nil, ErrIntervalJobNil
 	}
 	return c.scheduler.AddIntervalJobs(intervalJobs...)
@@ -121,7 +136,7 @@ func (c *IntervalJobClient) Remove() error {
 	if c.scheduler == nil {
 		return ErrScheduleNil
 	}
-	if c.job != nil {
+	if c.job == nil {
 		return ErrIntervalJobNil
 	}
 	if c.job.ID != "" {
@@ -140,7 +155,7 @@ func (c *IntervalJobClient) Get() (gocron.Job, error) {
 	if c.scheduler == nil {
 		return nil, ErrScheduleNil
 	}
-	if c.job != nil {
+	if c.job == nil {
 		return nil, ErrIntervalJobNil
 	}
 	if c.job.ID != "" {

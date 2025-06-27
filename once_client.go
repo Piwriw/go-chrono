@@ -9,21 +9,21 @@ import (
 
 type OnceJobClientInterface interface {
 	// AtTimes 设置运行时间
-	AtTimes(workTimes ...time.Time) *OnceJob
-	Alias(alias string) *OnceJob
-	JobID(id string) *OnceJob
-	Name(name string) *OnceJob
-	Tag(tags ...string) *OnceJob
-	Task(task any, parameters ...any) *OnceJob
-	Timeout(timeout time.Duration) *OnceJob
-	Watch(watch func(event JobWatchInterface)) *OnceJob
-	DefaultHooks() *OnceJob
-	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *OnceJob
-	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *OnceJob
-	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *OnceJob
-	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *OnceJob
-	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *OnceJob
-	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *OnceJob
+	AtTimes(workTimes ...time.Time) OnceJobClientInterface
+	Alias(alias string) OnceJobClientInterface
+	JobID(id string) OnceJobClientInterface
+	Name(name string) OnceJobClientInterface
+	Tag(tags ...string) OnceJobClientInterface
+	Task(task any, parameters ...any) OnceJobClientInterface
+	Timeout(timeout time.Duration) OnceJobClientInterface
+	Watch(watch func(event JobWatchInterface)) OnceJobClientInterface
+	DefaultHooks() OnceJobClientInterface
+	BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) OnceJobClientInterface
+	BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) OnceJobClientInterface
+	AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) OnceJobClientInterface
+	AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) OnceJobClientInterface
+	AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) OnceJobClientInterface
+	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) OnceJobClientInterface
 	Add() (gocron.Job, error)
 	BatchAdd(onceJobs ...*OnceJob) ([]gocron.Job, error)
 	Remove() error
@@ -37,64 +37,79 @@ type OnceJobClient struct {
 
 var _ OnceJobClientInterface = (*OnceJobClient)(nil)
 
-func (o *OnceJobClient) AtTimes(workTimes ...time.Time) *OnceJob {
-	return o.job.AtTimes(workTimes...)
+func (o *OnceJobClient) AtTimes(workTimes ...time.Time) OnceJobClientInterface {
+	o.job.AtTimes(workTimes...)
+	return o
 }
 
-func (o *OnceJobClient) Alias(alias string) *OnceJob {
-	return o.job.Alias(alias)
+func (o *OnceJobClient) Alias(alias string) OnceJobClientInterface {
+	o.job.Alias(alias)
+	return o
 }
 
-func (o *OnceJobClient) JobID(id string) *OnceJob {
-	return o.job.JobID(id)
+func (o *OnceJobClient) JobID(id string) OnceJobClientInterface {
+	o.job.JobID(id)
+	return o
 }
 
-func (o *OnceJobClient) Name(name string) *OnceJob {
-	return o.job.Names(name)
+func (o *OnceJobClient) Name(name string) OnceJobClientInterface {
+	o.job.Names(name)
+	return o
 }
 
-func (o *OnceJobClient) Tag(tags ...string) *OnceJob {
-	return o.job.Tags(tags...)
+func (o *OnceJobClient) Tag(tags ...string) OnceJobClientInterface {
+	o.job.Tags(tags...)
+	return o
 }
 
-func (o *OnceJobClient) Task(task any, parameters ...any) *OnceJob {
-	return o.job.Task(task, parameters...)
+func (o *OnceJobClient) Task(task any, parameters ...any) OnceJobClientInterface {
+	o.job.Task(task, parameters...)
+	return o
 }
 
-func (o *OnceJobClient) Timeout(timeout time.Duration) *OnceJob {
-	return o.job.Timeout(timeout)
+func (o *OnceJobClient) Timeout(timeout time.Duration) OnceJobClientInterface {
+	o.job.Timeout(timeout)
+	return o
 }
 
-func (o *OnceJobClient) Watch(watch func(event JobWatchInterface)) *OnceJob {
-	return o.job.Watch(watch)
+func (o *OnceJobClient) Watch(watch func(event JobWatchInterface)) OnceJobClientInterface {
+	o.job.Watch(watch)
+	return o
 }
 
-func (o *OnceJobClient) DefaultHooks() *OnceJob {
-	return o.job.DefaultHooks()
+func (o *OnceJobClient) DefaultHooks() OnceJobClientInterface {
+	o.job.DefaultHooks()
+	return o
 }
 
-func (o *OnceJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *OnceJob {
-	return o.job.BeforeJobRuns(eventListenerFunc)
+func (o *OnceJobClient) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) OnceJobClientInterface {
+	o.job.BeforeJobRuns(eventListenerFunc)
+	return o
 }
 
-func (o *OnceJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *OnceJob {
-	return o.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+func (o *OnceJobClient) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) OnceJobClientInterface {
+	o.job.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc)
+	return o
 }
 
-func (o *OnceJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *OnceJob {
-	return o.job.AfterJobRuns(eventListenerFunc)
+func (o *OnceJobClient) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) OnceJobClientInterface {
+	o.job.AfterJobRuns(eventListenerFunc)
+	return o
 }
 
-func (o *OnceJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *OnceJob {
-	return o.job.AfterJobRunsWithError(eventListenerFunc)
+func (o *OnceJobClient) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) OnceJobClientInterface {
+	o.job.AfterJobRunsWithError(eventListenerFunc)
+	return o
 }
 
-func (o *OnceJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *OnceJob {
-	return o.job.AfterJobRunsWithPanic(eventListenerFunc)
+func (o *OnceJobClient) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) OnceJobClientInterface {
+	o.job.AfterJobRunsWithPanic(eventListenerFunc)
+	return o
 }
 
-func (o *OnceJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *OnceJob {
-	return o.job.AfterLockError(eventListenerFunc)
+func (o *OnceJobClient) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) OnceJobClientInterface {
+	o.job.AfterLockError(eventListenerFunc)
+	return o
 }
 
 func (o *OnceJobClient) Add() (gocron.Job, error) {
