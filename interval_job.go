@@ -17,6 +17,9 @@ type IntervalJob struct {
 	// Unique identifier for the job
 	// 任务的唯一标识符
 	ID string
+	// 任务的类型
+	// JobType of the job
+	Type JobType
 	// Alias for the job
 	// 任务的别名
 	Ali string
@@ -54,6 +57,7 @@ type IntervalJob struct {
 func NewIntervalJob(interval time.Duration) *IntervalJob {
 	return &IntervalJob{
 		Interval: interval,
+		Type:     JobInterval,
 	}
 }
 

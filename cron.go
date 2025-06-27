@@ -17,6 +17,9 @@ type CronJob struct {
 	// 任务的唯一标识符
 	// Unique identifier for the job
 	ID string
+	// 任务的类型
+	// JobType of the job
+	Type JobType
 	// Alias for the job
 	// 任务的别名
 	Ali string
@@ -52,6 +55,7 @@ type CronJob struct {
 func NewCronJob(expr string) *CronJob {
 	return &CronJob{
 		Expr: expr,
+		Type: JobTypeCron,
 	}
 }
 

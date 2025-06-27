@@ -58,55 +58,10 @@ func (c customJobSpec) Error() error {
 	return errors.New("error")
 }
 
-func (c customJobMonitor) IncrementJob(id uuid.UUID, name string, tags []string, status gocron.JobStatus) {
-	slog.Info("IncrementJob", "JobID", id, "JobName", name, "tags", tags, "status", status)
-}
-
-func (c customJobMonitor) RecordJobTiming(startTime, endTime time.Time, id uuid.UUID, name string, tags []string) {
-	slog.Info("IncrementJob", "JobID", id, "JobName", name, "tags", tags)
-}
-
-func (c customJobMonitor) RecordJobTimingWithStatus(startTime, endTime time.Time, id uuid.UUID, name string, tags []string, status gocron.JobStatus, err error) {
-	c.jobChan <- customJobSpec{ID: id.String()}
-}
-
 func (c customJobMonitor) Watch() chan JobWatchInterface {
 	return c.jobChan
 }
 
-func TestCustomJobMonitor(t *testing.T) {
-	scheduler, err := NewScheduler(context.TODO(), customJobMonitor{jobChan: make(chan JobWatchInterface)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	// 添加一个 Cron 任务
-	task2 := func() error {
-		fmt.Println("Task2 executed with parameters:")
-		return nil
-	}
-	if err != nil {
-		t.Fatal(err)
-	}
-	scheduler.Start()
-	intervalJob2 := NewIntervalJob(time.Second * 20).
-		JobID("550e8400-e29b-41d4-a716-446655440000").
-		Names("TestTwoJob").
-		Task(task2).Watch(func(event JobWatchInterface) {
-
-	})
-
-	job, err := scheduler.AddIntervalJob(intervalJob2)
-	if err != nil {
-		t.Fatal(err)
-	}
-	nextRun, err := job.NextRun()
-	go scheduler.Watch()
-	t.Log("First Task", job.ID(), "TASK NAME", job.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
-	// block until you are ready to shut down
-	select {
-	case <-time.After(time.Minute * 10):
-	}
-}
 func TestTwoJob(t *testing.T) {
 	scheduler, err := NewScheduler(context.TODO(), nil)
 	if err != nil {
@@ -737,6 +692,37 @@ func TestWeb(t *testing.T) {
 		t.Fatal(err)
 	}
 	scheduler.Start()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Minute * 10):
+	}
+}
+
+func TestWithPrometheus(t *testing.T) {
+	monitor := newDefaultSchedulerMonitor(WithMaxRecords(3))
+	scheduler, err := NewScheduler(context.TODO(),
+		monitor,
+		WithWatch(nil),
+		WithWebMonitor("localhost:8080"),
+		WithPrometheus("localhost:8888"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := NewIntervalJob(time.Second*10).
+		Task(task, 1, 2).Names("TestWebMonitor").Watch(EmptyWatchFunc)
+
+	_, err = scheduler.AddIntervalJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	go scheduler.Watch()
 
 	// block until you are ready to shut down
 	select {

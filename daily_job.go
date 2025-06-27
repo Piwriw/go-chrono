@@ -17,6 +17,9 @@ type DailyJob struct {
 	// Unique identifier for the job
 	// 任务的唯一标识符
 	ID string
+	// 任务的类型
+	// JobType of the job
+	Type JobType
 	// Alias for the job
 	// 任务的别名
 	Ali string
@@ -56,6 +59,7 @@ func NewDailyJob(interval uint, atTime gocron.AtTimes) *DailyJob {
 	return &DailyJob{
 		Interval: interval,
 		AtTimes:  atTime,
+		Type:     JobTypeDaily,
 	}
 }
 

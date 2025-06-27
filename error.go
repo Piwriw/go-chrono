@@ -21,4 +21,5 @@ var (
 	ErrJobNotFound     = errors.New("chrono:job not found (missing JobID/Alias/Name)")
 	ErrDisEnableLimit  = errors.New("chrono:limit is disable")
 	ErrMoreLimit       = errors.New("chrono:limit is reached")
+	ErrJobIDNil        = errors.New("chrono:job id cannot be nil")
 )

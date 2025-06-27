@@ -8,6 +8,7 @@ const (
 	TimoutOptionName     = "timeout"
 	WebMonitorOptionName = "web_monitor"
 	LimitOptionName      = "limit"
+	PrometheusOptionName = "prometheus"
 )
 
 // ScheduleOption is the interface for options in chrono.
@@ -135,4 +136,23 @@ func (l *LimitOption) Enable() bool {
 
 func (l *LimitOption) Limit() int {
 	return l.number
+}
+
+type PrometheusOption struct {
+	enabled bool
+	address string
+}
+
+var _ ScheduleOption = &PrometheusOption{}
+
+func (p *PrometheusOption) Name() string {
+	return PrometheusOptionName
+}
+
+func (p *PrometheusOption) Enable() bool {
+	return p.enabled
+}
+
+func (p *PrometheusOption) Address() string {
+	return p.address
 }

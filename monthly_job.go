@@ -17,6 +17,9 @@ type MonthJob struct {
 	// Unique identifier for the job
 	// 任务的唯一标识符
 	ID string
+	// 任务的类型
+	// JobType of the job
+	Type JobType
 	// Alias for the job
 	// 任务的别名
 	Ali string
@@ -60,6 +63,7 @@ func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTime
 		Interval:       interval,
 		DaysOfTheMonth: days,
 		AtTimes:        atTime,
+		Type:           JobTypeMonthly,
 	}
 }
 

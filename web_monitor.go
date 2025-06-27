@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
-	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -28,32 +27,6 @@ func NewWebMonitor(s *Scheduler, addr string) *WebMonitor {
 	}
 }
 
-func (wm *WebMonitor) validateAddr(addr string) error {
-	// 如果是本地地址，例如 "localhost" 或 "127.0.0.1"
-	if strings.HasPrefix(addr, "localhost") || strings.HasPrefix(addr, "127.0.0.1") {
-		return nil
-	}
-
-	// 使用 net.ParseIP 检查是否是有效的 IP 地址
-	ip := net.ParseIP(addr)
-	if ip != nil {
-		return nil
-	}
-
-	// 如果是端口检查 (例如 :8080)
-	if strings.HasPrefix(addr, ":") {
-		return nil
-	}
-
-	// 如果是主机名和端口号的组合，例如 localhost:8080
-	_, _, err := net.SplitHostPort(addr)
-	if err != nil {
-		return fmt.Errorf("invalid address: %v", err)
-	}
-
-	return nil
-}
-
 func (wm *WebMonitor) Start() error {
 	mux := http.NewServeMux()
 	endpoints := []string{"/healthz", "/jobs"}
@@ -61,7 +34,7 @@ func (wm *WebMonitor) Start() error {
 	mux.HandleFunc("/healthz", wm.handleHealthz)
 	mux.HandleFunc("/jobs", wm.handleJobs)
 
-	if err := wm.validateAddr(wm.addr); err != nil {
+	if err := validateURLAddr(wm.addr); err != nil {
 		return fmt.Errorf("invalid address: %v", err)
 	}
 	wm.server = &http.Server{
@@ -95,12 +68,12 @@ func (wm *WebMonitor) handleHealthz(w http.ResponseWriter, r *http.Request) {
 }
 
 type JobMonitorSpec struct {
-	ID      string     `json:"id"`
-	Name    string     `json:"name"`
-	Alias   *string    `json:"alias"`
-	LastRun *time.Time `json:"last_run"`
-	NextRun *time.Time `json:"next_run"`
-	Events  []JobEvent `json:"events"`
+	ID      string      `json:"id"`
+	Name    string      `json:"name"`
+	Alias   *string     `json:"alias"`
+	LastRun *time.Time  `json:"last_run"`
+	NextRun *time.Time  `json:"next_run"`
+	Events  []*JobEvent `json:"events"`
 }
 
 func (j JobMonitorSpec) MarshalJSON() ([]byte, error) {

@@ -40,6 +40,7 @@ type JobWatchInterface interface {
 	// Error Gets the job error
 	// 获取任务错误
 	//Error() error
+	GetCurrentEvent() *JobEvent
 }
 
 // SchedulerMonitor defines the interface for a scheduler monitor.
@@ -51,10 +52,10 @@ type SchedulerMonitor interface {
 	Watch() chan JobWatchInterface
 	// UpdateJobEvents Updates job events
 	// 更新任务事件
-	UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent JobEvent, jobTags ...string)
+	UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string)
 	// GetJobEvents Gets job events
 	// 获取任务事件
-	GetJobEvents(jobID string) []JobEvent
+	GetJobEvents(jobID string) []*JobEvent
 }
 
 type defaultSchedulerMonitor struct {
@@ -92,32 +93,33 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 }
 
 // UpdateJobEvents 更新任务事件
-func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent JobEvent, jobTags ...string) {
+func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string) {
 	// 获取当前的事件记录
 	event, ok := s.jobRecord[jobID.String()]
 	if !ok {
-		// 如果不存在，创建一个新的事件记录
-		event = MonitorJobSpec{
+		// 如果不存在，创建一个新的事件记录并直接返回
+		s.jobRecord[jobID.String()] = MonitorJobSpec{
 			JobSpec: JobSpec{
 				JobID:   jobID.String(),
 				JobName: jobName,
 				Tags:    jobTags,
 			},
-			JobEvents: []JobEvent{jobnewEvent},
+			JobEvents: []*JobEvent{jobnewEvent},
 		}
+		return
 	}
+
 	// 添加新的事件记录
 	if len(event.JobEvents) < s.maxRecords {
 		event.JobEvents = append(event.JobEvents, jobnewEvent)
 	} else {
 		// 覆盖最早的事件，实现环形缓冲区
-		// 将第一个移除，末尾追加新事件
 		event.JobEvents = append(event.JobEvents[1:], jobnewEvent)
 	}
 	s.jobRecord[jobID.String()] = event
 }
 
-func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []JobEvent {
+func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
 	if len(s.jobRecord) == 0 {
 		return nil
 	}
@@ -132,7 +134,7 @@ func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []JobEvent {
 // MonitorJobSpec 表示被监控任务的规范。
 type MonitorJobSpec struct {
 	JobSpec   JobSpec
-	JobEvents []JobEvent
+	JobEvents []*JobEvent
 }
 
 type JobSpec struct {
@@ -157,6 +159,15 @@ func (m MonitorJobSpec) GetJobID() string {
 // GetJobName 获取任务名称。
 func (m MonitorJobSpec) GetJobName() string {
 	return m.JobSpec.JobName
+}
+
+// GetCurrentEvent gets the current job event.
+// GetCurrentEvent 获取当前任务事件
+func (m MonitorJobSpec) GetCurrentEvent() *JobEvent {
+	if len(m.JobEvents) == 0 {
+		return nil
+	}
+	return m.JobEvents[len(m.JobEvents)-1]
 }
 
 var _ JobWatchInterface = (*MonitorJobSpec)(nil)
@@ -297,15 +308,23 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 	}
 	jobMonitorSpec := MonitorJobSpec{
 		JobSpec:   jobSpec,
-		JobEvents: []JobEvent{},
+		JobEvents: []*JobEvent{},
 	}
-	s.UpdateJobEvents(id, name, JobEvent{
+
+	newEvent := &JobEvent{
 		EventID:   s.eventIDCli.NextID(jobSpec),
 		StartTime: startTime,
 		EndTime:   endTime,
 		Status:    status,
 		Err:       err,
-	})
+	}
+
+	s.UpdateJobEvents(id, name, newEvent)
+	// 创建包含新事件的 MonitorJobSpec
+	jobMonitorSpec = MonitorJobSpec{
+		JobSpec:   jobSpec,
+		JobEvents: []*JobEvent{newEvent}, // 包含当前事件
+	}
 	s.jobChan <- jobMonitorSpec
 }
 

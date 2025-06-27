@@ -15,6 +15,8 @@ const (
 	defaultTimeout = 15 * time.Second
 )
 
+var defaultWatch = EmptyWatchFunc
+
 var DefaultScheduler *Scheduler
 
 // InitScheduler initializes the default scheduler.
@@ -48,6 +50,12 @@ type Scheduler struct {
 	// Mutex to protect watchFuncMap
 	// 用于保护 watchFuncMap 的互斥锁
 	mu sync.Mutex
+	// Job type map
+	// 任务类型映射
+	jobTypeMap map[string]JobType
+	// Mutex to protect jobTypeMap
+	// 用于保护 jobTypeMap 的互斥锁
+	jobTypeMu sync.Mutex
 	// Scheduler options
 	// 调度器选项
 	schOptions *SchedulerOptions
@@ -68,6 +76,8 @@ type SchedulerOptions struct {
 	webMonitor *WebMonitorOption
 	// Limit option
 	limit *LimitOption
+	// Prometheus option
+	prometheus *PrometheusOption
 }
 
 // Enable checks if a specific option is enabled.
@@ -94,6 +104,10 @@ func (s *Scheduler) Enable(option string) bool {
 		if s.schOptions.limit != nil {
 			return s.schOptions.limit.Enable()
 		}
+	case PrometheusOptionName:
+		if s.schOptions.prometheus != nil {
+			return s.schOptions.prometheus.Enable()
+		}
 	}
 	return false
 }
@@ -114,7 +128,11 @@ func WithAliasMode() SchedulerOption {
 // WithWatch 设置监听选项。
 func WithWatch(watchFunc func(event JobWatchInterface)) SchedulerOption {
 	return func(s *SchedulerOptions) {
-		s.watch = &WatchOption{enabled: true, watchFunc: watchFunc}
+		if watchFunc != nil {
+			s.watch = &WatchOption{enabled: true, watchFunc: watchFunc}
+			return
+		}
+		s.watch = &WatchOption{enabled: true, watchFunc: defaultWatch}
 	}
 }
 
@@ -141,6 +159,15 @@ func WithLimit(limit int) SchedulerOption {
 	}
 }
 
+// WithPrometheus sets the prometheus option.
+// need WithWatch first
+// WithPrometheus 设置 Prometheus 监控指标 选项
+func WithPrometheus(address string) SchedulerOption {
+	return func(s *SchedulerOptions) {
+		s.prometheus = &PrometheusOption{enabled: true, address: address}
+	}
+}
+
 // Event represents a job event.
 // Event 表示一个任务事件。
 type Event struct {
@@ -161,6 +188,26 @@ type Event struct {
 	Err error
 }
 
+func (e Event) GetJobID() string {
+	return e.JobID
+}
+
+func (e Event) GetJobName() string {
+	return e.JobName
+}
+
+func (e Event) GetNextRunTime() time.Time {
+	return e.NextRunTime
+}
+
+func (e Event) GetLastTime() time.Time {
+	return e.LastTime
+}
+
+func (e Event) GetError() error {
+	return e.Err
+}
+
 // Watch starts watching job events.
 // Watch 开始监听任务事件。
 func (s *Scheduler) Watch() {
@@ -174,14 +221,35 @@ func (s *Scheduler) Watch() {
 		case <-s.ctx.Done():
 			return
 		case e := <-event:
-			fn, ok := s.watchFuncMap[e.GetJobID()]
+			jobID := e.GetJobID()
+			fn, ok := s.watchFuncMap[jobID]
 			if !ok {
-				slog.Error("chrono:job not found", "jobID", e.GetJobID())
+				slog.Error("chrono:job not found", slog.Any("jobID", e.GetJobID()))
 				continue
 			}
 			fn(e)
+			jobName := e.GetJobName()
+			currentEvent := e.GetCurrentEvent()
+			if s.Enable(PrometheusOptionName) {
+				s.updatePrometheusMetrics(jobID, jobName, currentEvent)
+			}
 		}
 	}
+}
+
+func (s *Scheduler) updatePromJobStatus(jobType JobType, jobName string, status gocron.JobStatus) {
+	switch status {
+	case gocron.Success:
+		IncJobRunning(jobType, jobName, jobName)
+	case gocron.Fail:
+		DecJobRunning(jobType, jobName, jobName)
+	}
+}
+
+func (s *Scheduler) updatePrometheusMetrics(jobID, jobName string, event *JobEvent) {
+	jobType := s.getJobType(jobID)
+	status := event.GetStatus()
+	s.updatePromJobStatus(jobType, jobName, status)
 }
 
 // NewScheduler creates a new scheduler.
@@ -209,6 +277,7 @@ func NewScheduler(ctx context.Context, monitor SchedulerMonitor, options ...Sche
 		ctx:          ctx,
 		watchFuncMap: make(map[string]func(event JobWatchInterface)),
 		aliasMap:     make(map[string]string),
+		jobTypeMap:   make(map[string]JobType),
 		schOptions:   schOptions,
 	}, nil
 }
@@ -220,6 +289,9 @@ func (s *Scheduler) Start() {
 		if err := NewWebMonitor(s, s.schOptions.webMonitor.Address()).Start(); err != nil {
 			panic("chrono:failed to start web monitor")
 		}
+	}
+	if s.Enable(PrometheusOptionName) {
+		StartPrometheusEndpoint(s.schOptions.prometheus.Address())
 	}
 	s.scheduler.Start()
 }
@@ -233,6 +305,9 @@ func (s *Scheduler) Stop() error {
 // RemoveJob removes a job by jobID.
 // RemoveJob 通过 jobID 移除任务。
 func (s *Scheduler) RemoveJob(jobID string) error {
+	if jobID == "" {
+		return ErrJobIDNil
+	}
 	jobUUID, err := uuid.Parse(jobID)
 	if err != nil {
 		return fmt.Errorf("chrono:invalid job ID %s: %w", jobID, err)
@@ -248,6 +323,7 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	if s.Enable(WatchOptionName) {
 		s.removeWatchFunc(jobID)
 	}
+	s.removeJobType(jobID)
 	return s.scheduler.RemoveJob(jobUUID)
 }
 
@@ -259,7 +335,10 @@ func (s *Scheduler) RemoveJobByName(name string) error {
 	}
 	for _, job := range jobs {
 		if job.Name() == name {
-			return s.RemoveJob(job.ID().String())
+			if err := s.RemoveJob(job.ID().String()); err != nil {
+				return err
+			}
+			s.removeJobType(job.ID().String())
 		}
 	}
 	return fmt.Errorf("job with name %s not found", name)
@@ -285,6 +364,7 @@ func (s *Scheduler) RemoveJobByAlias(alias string) error {
 		return fmt.Errorf("chrono:invalid job ID %s: %w", jobID, err)
 	}
 	s.removeAlias(jobID)
+	s.removeJobType(jobID)
 	if s.Enable(WatchOptionName) {
 		s.removeWatchFunc(jobID)
 	}
@@ -326,6 +406,35 @@ func (s *Scheduler) RunJobNowByAlias(alias string) error {
 		return err
 	}
 	return job.RunNow()
+}
+
+func (s *Scheduler) addJobType(jobID string, jobType JobType) {
+	s.jobTypeMu.Lock()
+	defer s.jobTypeMu.Unlock()
+	if jobID == "" {
+		slog.Warn("chrono:jobID is empty", "jobType", jobType)
+		return
+	}
+	s.jobTypeMap[jobID] = jobType
+}
+
+func (s *Scheduler) removeJobType(jobID string) {
+	s.jobTypeMu.Lock()
+	defer s.jobTypeMu.Unlock()
+	if _, exists := s.jobTypeMap[jobID]; exists {
+		delete(s.jobTypeMap, jobID)
+	} else {
+		slog.Warn("chrono:jobTypeMap not found in jobTypeMap", "jobID", jobID)
+	}
+}
+
+func (s *Scheduler) getJobType(jobID string) JobType {
+	s.jobTypeMu.Lock()
+	defer s.jobTypeMu.Unlock()
+	if jobType, exists := s.jobTypeMap[jobID]; exists {
+		return jobType
+	}
+	return JobTypeUnknown
 }
 
 // addAlias adds an alias for a job.
@@ -700,6 +809,7 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add cron job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(AliasOptionName) {
 		s.addAlias(job.Ali, jobInstance.ID().String())
 	}
@@ -794,6 +904,7 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add once job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(WatchOptionName) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
@@ -880,6 +991,7 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(WatchOptionName) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
@@ -964,6 +1076,7 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(WatchOptionName) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
@@ -1048,6 +1161,7 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add weekly job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(WatchOptionName) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)
@@ -1132,6 +1246,7 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 	if err != nil {
 		return nil, fmt.Errorf("chrono:failed to add monthly job: %w", err)
 	}
+	s.addJobType(jobInstance.ID().String(), job.Type)
 	if s.Enable(WatchOptionName) {
 		if job.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), job.WatchFunc)

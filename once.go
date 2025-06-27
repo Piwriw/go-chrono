@@ -12,7 +12,10 @@ import (
 )
 
 type OnceJob struct {
-	ID         string
+	ID string
+	// 任务的类型
+	// JobType of the job
+	Type       JobType
 	Ali        string
 	Name       string
 	WorkTime   []time.Time
@@ -28,6 +31,7 @@ type OnceJob struct {
 func NewOnceJob(workTimes ...time.Time) *OnceJob {
 	return &OnceJob{
 		WorkTime: workTimes,
+		Type:     JobTypeOnce,
 	}
 }
 

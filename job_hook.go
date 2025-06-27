@@ -39,7 +39,7 @@ var defaultAfterLockError = func(jobID uuid.UUID, jobName string, err error) {
 }
 
 // EmptyWatchFunc Empty monitor event handler
-var EmptyWatchFunc = func(event MonitorJobSpec) {}
+var EmptyWatchFunc = func(event JobWatchInterface) {}
 
 // Empty after job runs with error hook
 var EmptyAfterJobRunsWithError = defaultAfterJobRunsWithError
