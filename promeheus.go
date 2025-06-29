@@ -296,7 +296,6 @@ var (
 	)
 )
 
-// TODO 等待实现
 // RecordJobExecution Unified entry for recording job execution
 func RecordJobExecution(jobType JobType, jobID, jobName string, durationSeconds float64, success bool, err error) {
 	labels := prometheus.Labels{

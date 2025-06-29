@@ -229,15 +229,21 @@ func (m JobEvent) GetStatus() gocron.JobStatus {
 	return m.Status
 }
 
+// GetSpendTime gets the job spend time.
+// GetSpendTime 获取任务花费时间
+func (m JobEvent) GetSpendTime() int64 {
+	return m.EndTime.UnixMilli() - m.StartTime.UnixMilli()
+}
+
 // GetTags gets the job tags.
 // GetTags 获取任务标签。
 func (m MonitorJobSpec) GetTags() []string {
 	return m.JobSpec.Tags
 }
 
-// Error gets the job error.
-// Error 获取任务错误。
-func (m JobEvent) Error() error {
+// GetError gets the job error.
+// GetError 获取任务错误。
+func (m JobEvent) GetError() error {
 	return m.Err
 }
 

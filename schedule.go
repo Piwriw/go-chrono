@@ -246,10 +246,19 @@ func (s *Scheduler) updatePromJobStatus(jobType JobType, jobName string, status 
 	}
 }
 
+func (s *Scheduler) updatePrometheusJobTime(jobType JobType, jobID, jobName string, status gocron.JobStatus, event *JobEvent) {
+	if status == gocron.Success {
+		RecordJobExecution(jobType, jobName, jobName, float64(event.GetSpendTime()), true, nil)
+		return
+	}
+	RecordJobExecution(jobType, jobID, jobName, float64(event.GetSpendTime()), false, event.GetError())
+}
+
 func (s *Scheduler) updatePrometheusMetrics(jobID, jobName string, event *JobEvent) {
 	jobType := s.getJobType(jobID)
 	status := event.GetStatus()
 	s.updatePromJobStatus(jobType, jobName, status)
+	s.updatePrometheusJobTime(jobType, jobID, jobName, status, event)
 }
 
 // NewScheduler creates a new scheduler.
@@ -1296,7 +1305,9 @@ func (s *Scheduler) AddMonthlyJobWithOptions(interval uint, daysOfTheMonth gocro
 func (s *Scheduler) OnceJob() OnceJobClientInterface {
 	return &OnceJobClient{
 		scheduler: s,
-		job:       &OnceJob{},
+		job: &OnceJob{
+			Type: JobTypeOnce,
+		},
 	}
 }
 
@@ -1305,7 +1316,9 @@ func (s *Scheduler) OnceJob() OnceJobClientInterface {
 func (s *Scheduler) CronJob() CronJobClientInterface {
 	return &CronJobClient{
 		scheduler: s,
-		job:       &CronJob{},
+		job: &CronJob{
+			Type: JobTypeCron,
+		},
 	}
 }
 
@@ -1314,7 +1327,9 @@ func (s *Scheduler) CronJob() CronJobClientInterface {
 func (s *Scheduler) DailyJob() DailyJobClientInterface {
 	return &DailyJobClient{
 		scheduler: s,
-		job:       &DailyJob{},
+		job: &DailyJob{
+			Type: JobTypeDaily,
+		},
 	}
 }
 
@@ -1322,14 +1337,18 @@ func (s *Scheduler) DailyJob() DailyJobClientInterface {
 func (s *Scheduler) IntervalJob() IntervalJobClientInterface {
 	return &IntervalJobClient{
 		scheduler: s,
-		job:       &IntervalJob{},
+		job: &IntervalJob{
+			Type: JobInterval,
+		},
 	}
 }
 
 func (s *Scheduler) WeeklyJob() WeeklyJobClientInterface {
 	return &WeeklyJobClient{
 		scheduler: s,
-		job:       &WeeklyJob{},
+		job: &WeeklyJob{
+			Type: JobTypeWeekly,
+		},
 	}
 }
 
@@ -1337,6 +1356,8 @@ func (s *Scheduler) WeeklyJob() WeeklyJobClientInterface {
 func (s *Scheduler) Monthly() MonthJobClientInterface {
 	return &MonthJobClient{
 		scheduler: s,
-		job:       &MonthJob{},
+		job: &MonthJob{
+			Type: JobTypeMonthly,
+		},
 	}
 }
