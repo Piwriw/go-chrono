@@ -15,7 +15,14 @@ import (
 var (
 	// 用于跟踪正在运行的job
 	runningJobs sync.Map // map[string]struct{}
+	registry    = prometheus.NewRegistry()
 )
+
+// GetRegistry 获取prometheus的注册器
+// GetRegistry returns the prometheus registry.
+func GetRegistry() *prometheus.Registry {
+	return registry
+}
 
 func StartPrometheusEndpoint(addr string) {
 	if err := validateURLAddr(addr); err != nil {
@@ -416,39 +423,39 @@ func DecJobRunning(jobType JobType, jobID, jobName string) {
 func init() {
 	runningJobs = sync.Map{}
 	// Once
-	prometheus.MustRegister(onceJobTotal)
-	prometheus.MustRegister(onceJobFailedTotal)
-	prometheus.MustRegister(onceJobDuration)
-	prometheus.MustRegister(onceJobRunning)
-	prometheus.MustRegister(onceJobStatus)
+	registry.MustRegister(onceJobTotal)
+	registry.MustRegister(onceJobFailedTotal)
+	registry.MustRegister(onceJobDuration)
+	registry.MustRegister(onceJobRunning)
+	registry.MustRegister(onceJobStatus)
 	// Interval
-	prometheus.MustRegister(intervalJobTotal)
-	prometheus.MustRegister(intervalJobFailedTotal)
-	prometheus.MustRegister(intervalJobDuration)
-	prometheus.MustRegister(intervalJobRunning)
-	prometheus.MustRegister(intervalJobStatus)
+	registry.MustRegister(intervalJobTotal)
+	registry.MustRegister(intervalJobFailedTotal)
+	registry.MustRegister(intervalJobDuration)
+	registry.MustRegister(intervalJobRunning)
+	registry.MustRegister(intervalJobStatus)
 	// Daily
-	prometheus.MustRegister(dailyJobTotal)
-	prometheus.MustRegister(dailyJobFailedTotal)
-	prometheus.MustRegister(dailyJobDuration)
-	prometheus.MustRegister(dailyJobRunning)
-	prometheus.MustRegister(dailyJobStatus)
+	registry.MustRegister(dailyJobTotal)
+	registry.MustRegister(dailyJobFailedTotal)
+	registry.MustRegister(dailyJobDuration)
+	registry.MustRegister(dailyJobRunning)
+	registry.MustRegister(dailyJobStatus)
 	// Weekly
-	prometheus.MustRegister(weeklyJobTotal)
-	prometheus.MustRegister(weeklyJobFailedTotal)
-	prometheus.MustRegister(weeklyJobDuration)
-	prometheus.MustRegister(weeklyJobRunning)
-	prometheus.MustRegister(weeklyJobStatus)
+	registry.MustRegister(weeklyJobTotal)
+	registry.MustRegister(weeklyJobFailedTotal)
+	registry.MustRegister(weeklyJobDuration)
+	registry.MustRegister(weeklyJobRunning)
+	registry.MustRegister(weeklyJobStatus)
 	// Monthly
-	prometheus.MustRegister(monthlyJobTotal)
-	prometheus.MustRegister(monthlyJobFailedTotal)
-	prometheus.MustRegister(monthlyJobDuration)
-	prometheus.MustRegister(monthlyJobRunning)
-	prometheus.MustRegister(monthlyJobStatus)
+	registry.MustRegister(monthlyJobTotal)
+	registry.MustRegister(monthlyJobFailedTotal)
+	registry.MustRegister(monthlyJobDuration)
+	registry.MustRegister(monthlyJobRunning)
+	registry.MustRegister(monthlyJobStatus)
 	// Cron
-	prometheus.MustRegister(cronJobTotal)
-	prometheus.MustRegister(cronJobFailedTotal)
-	prometheus.MustRegister(cronJobDuration)
-	prometheus.MustRegister(cronJobRunning)
-	prometheus.MustRegister(cronJobStatus)
+	registry.MustRegister(cronJobTotal)
+	registry.MustRegister(cronJobFailedTotal)
+	registry.MustRegister(cronJobDuration)
+	registry.MustRegister(cronJobRunning)
+	registry.MustRegister(cronJobStatus)
 }
