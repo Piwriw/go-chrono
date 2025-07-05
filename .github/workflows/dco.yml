@@ -19,12 +19,20 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
-  make-lint:
-    name: Run MakeLint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - name: Run MakeLint
-        run: make lint
-        env:
-          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+    make-lint:
+      name: Run MakeLint
+      runs-on: ubuntu-latest
+      steps:
+        - uses: actions/checkout@v4
+        - name: Set up Go
+          uses: actions/setup-go@v4
+          with:
+            go-version: '1.23.0'  # 使用你项目需要的 Go 版本
+
+        - name: Install dependencies
+          run: |
+            go mod download
+            go mod tidy
+
+        - name: Run MakeLint
+          run: make lint
