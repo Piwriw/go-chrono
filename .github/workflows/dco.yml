@@ -1,4 +1,4 @@
-name: Check Signed-off-by
+name: Check CI Pipeline
 
 on:
   pull_request:
@@ -16,5 +16,15 @@ jobs:
         with:
           python-version: '3.12'
           args: '--verbose'
+        env:
+          GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
+
+  make-lint:
+    name: Run MakeLint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run MakeLint
+        run: make lint
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
