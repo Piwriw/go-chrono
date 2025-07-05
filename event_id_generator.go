@@ -1,10 +1,9 @@
 package chrono
 
 import (
+	"github.com/google/uuid"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 // EventIDGenerator 接口
