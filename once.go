@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log/slog"
-	"time"
-
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"log/slog"
+	"time"
 )
 
 type OnceJob struct {
