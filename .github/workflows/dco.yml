@@ -19,7 +19,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.BOT_TOKEN }}
 
-    make-lint:
+  make-lint:
       name: Run MakeLint
       runs-on: ubuntu-latest
       steps:
