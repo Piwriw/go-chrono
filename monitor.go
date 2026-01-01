@@ -11,35 +11,65 @@ import (
 )
 
 const (
-	defaultMaxRecords = 3 // 默认最大记录数
+	// defaultMaxRecords is the default maximum number of job event records to keep.
+	// defaultMaxRecords 是默认保留的任务事件记录的最大数量。
+	defaultMaxRecords = 3
 )
 
+// defaultEventIDGenerator is the default event ID generator.
+// defaultEventIDGenerator 是默认的事件 ID 生成器。
 var defaultEventIDGenerator = &UUIDEventIDGenerator{}
 
 // JobWatchInterface defines the interface for job event watching.
 // JobWatchInterface 定义了任务事件监听的接口。
 type JobWatchInterface interface {
-	// GetJobID Gets the job ID
-	// 获取任务 ID
+	// GetJobID gets the job ID.
+	// 获取任务 ID。
+	//
+	// Returns:
+	//	string - The job ID / 任务 ID
 	GetJobID() string
-	// GetJobName Gets the job name
-	// 获取任务名称
+	// GetJobName gets the job name.
+	// 获取任务名称。
+	//
+	// Returns:
+	//	string - The job name / 任务名称
 	GetJobName() string
-	// GetStartTime Gets the job start time
-	// 获取任务开始时间
+	// GetStartTime gets the job start time.
+	// 获取任务开始时间。
+	//
+	// Returns:
+	//	time.Time - The start time / 开始时间
 	//GetStartTime() time.Time
-	// GetEndTime Gets the job end time
-	// 获取任务结束时间
+	// GetEndTime gets the job end time.
+	// 获取任务结束时间。
+	//
+	// Returns:
+	//	time.Time - The end time / 结束时间
 	//GetEndTime() time.Time
-	// GetStatus Gets the job status
-	// 获取任务状态
+	// GetStatus gets the job status.
+	// 获取任务状态。
+	//
+	// Returns:
+	//	gocron.JobStatus - The job status / 任务状态
 	//GetStatus() gocron.JobStatus
-	// GetTags Gets the job tags
-	// 获取任务标签
+	// GetTags gets the job tags.
+	// 获取任务标签。
+	//
+	// Returns:
+	//	[]string - The job tags / 任务标签
 	GetTags() []string
-	// Error Gets the job error
-	// 获取任务错误
+	// Error gets the job error.
+	// 获取任务错误。
+	//
+	// Returns:
+	//	error - The job error / 任务错误
 	//Error() error
+	// GetCurrentEvent gets the current job event.
+	// 获取当前任务事件。
+	//
+	// Returns:
+	//	*JobEvent - The current job event / 当前任务事件
 	GetCurrentEvent() *JobEvent
 }
 
@@ -47,31 +77,73 @@ type JobWatchInterface interface {
 // SchedulerMonitor 定义了调度器监控的接口。
 type SchedulerMonitor interface {
 	gocron.MonitorStatus
-	// Watch Watches job events
-	// 监听任务事件
+	// Watch watches job events.
+	// 监听任务事件。
+	//
+	// Returns:
+	//	chan JobWatchInterface - The channel for job events / 任务事件的通道
 	Watch() chan JobWatchInterface
-	// UpdateJobEvents Updates job events
-	// 更新任务事件
+	// UpdateJobEvents updates job events.
+	// 更新任务事件。
+	//
+	// Parameters:
+	//	jobID      - The job ID / 任务 ID
+	//	jobName    - The job name / 任务名称
+	//	jobnewEvent - The new job event / 新的任务事件
+	//	jobTags    - Variable number of job tags / 可变数量的任务标签
 	UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string)
-	// GetJobEvents Gets job events
-	// 获取任务事件
+	// GetJobEvents gets job events.
+	// 获取任务事件。
+	//
+	// Parameters:
+	//	jobID - The job ID / 任务 ID
+	// Returns:
+	//	[]*JobEvent - The list of job events / 任务事件列表
 	GetJobEvents(jobID string) []*JobEvent
 }
 
+// defaultSchedulerMonitor is the default implementation of SchedulerMonitor.
+// defaultSchedulerMonitor 是 SchedulerMonitor 的默认实现。
 type defaultSchedulerMonitor struct {
-	mu         sync.Mutex
-	counter    map[string]int
-	time       map[string][]time.Duration
-	jobChan    chan JobWatchInterface
+	// mu is the mutex for thread-safe operations.
+	// mu 是用于线程安全操作的互斥锁。
+	mu sync.Mutex
+	// counter tracks the execution count of jobs.
+	// counter 跟踪任务的执行次数。
+	counter map[string]int
+	// time tracks the execution time of jobs.
+	// time 跟踪任务的执行时间。
+	time map[string][]time.Duration
+	// jobChan is the channel for job events.
+	// jobChan 是任务事件的通道。
+	jobChan chan JobWatchInterface
+	// maxRecords is the maximum number of job event records to keep.
+	// maxRecords 是保留的任务事件记录的最大数量。
 	maxRecords int
-	jobRecord  map[string]MonitorJobSpec
+	// jobRecord stores the job specifications and events.
+	// jobRecord 存储任务规范和事件。
+	jobRecord map[string]MonitorJobSpec
+	// eventIDCli is the event ID generator.
+	// eventIDCli 是事件 ID 生成器。
 	eventIDCli EventIDGenerator
 }
 
 var _ SchedulerMonitor = (*defaultSchedulerMonitor)(nil)
 
+// SchedulerMonitorOption is the option type for configuring the scheduler monitor.
+// SchedulerMonitorOption 是用于配置调度器监控的选项类型。
 type SchedulerMonitorOption func(*defaultSchedulerMonitor)
 
+// WithMaxRecords sets the maximum number of job event records to keep.
+// WithMaxRecords 设置保留的任务事件记录的最大数量。
+//
+// Parameters:
+//
+//	maxRecords - The maximum number of records / 最大记录数量
+//
+// Returns:
+//
+//	func(*defaultSchedulerMonitor) - The scheduler monitor option / 调度器监控选项
 func WithMaxRecords(maxRecords int) func(*defaultSchedulerMonitor) {
 	return func(s *defaultSchedulerMonitor) {
 		if s.maxRecords <= 0 {
@@ -82,6 +154,16 @@ func WithMaxRecords(maxRecords int) func(*defaultSchedulerMonitor) {
 	}
 }
 
+// WithEventIDGenerator sets the event ID generator.
+// WithEventIDGenerator 设置事件 ID 生成器。
+//
+// Parameters:
+//
+//	eventIDGenerator - The event ID generator / 事件 ID 生成器
+//
+// Returns:
+//
+//	func(*defaultSchedulerMonitor) - The scheduler monitor option / 调度器监控选项
 func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedulerMonitor) {
 	return func(s *defaultSchedulerMonitor) {
 		if eventIDGenerator == nil {
@@ -92,11 +174,21 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 	}
 }
 
-// UpdateJobEvents 更新任务事件
+// UpdateJobEvents updates job events.
+// UpdateJobEvents 更新任务事件。
+//
+// Parameters:
+//
+//	jobID      - The job ID / 任务 ID
+//	jobName    - The job name / 任务名称
+//	jobnewEvent - The new job event / 新的任务事件
+//	jobTags    - Variable number of job tags / 可变数量的任务标签
 func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string) {
+	// Get the current event record
 	// 获取当前的事件记录
 	event, ok := s.jobRecord[jobID.String()]
 	if !ok {
+		// If not exists, create a new event record and return directly
 		// 如果不存在，创建一个新的事件记录并直接返回
 		s.jobRecord[jobID.String()] = MonitorJobSpec{
 			JobSpec: JobSpec{
@@ -109,16 +201,28 @@ func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName strin
 		return
 	}
 
+	// Add new event record
 	// 添加新的事件记录
 	if len(event.JobEvents) < s.maxRecords {
 		event.JobEvents = append(event.JobEvents, jobnewEvent)
 	} else {
+		// Overwrite the earliest event, implementing a circular buffer
 		// 覆盖最早的事件，实现环形缓冲区
 		event.JobEvents = append(event.JobEvents[1:], jobnewEvent)
 	}
 	s.jobRecord[jobID.String()] = event
 }
 
+// GetJobEvents gets job events.
+// GetJobEvents 获取任务事件。
+//
+// Parameters:
+//
+//	jobID - The job ID / 任务 ID
+//
+// Returns:
+//
+//	[]*JobEvent - The list of job events / 任务事件列表
 func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
 	if len(s.jobRecord) == 0 {
 		return nil
@@ -133,36 +237,54 @@ func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
 // MonitorJobSpec represents the specification of a monitored job.
 // MonitorJobSpec 表示被监控任务的规范。
 type MonitorJobSpec struct {
-	JobSpec   JobSpec
+	// JobSpec is the job specification.
+	// JobSpec 是任务规范。
+	JobSpec JobSpec
+	// JobEvents is the list of job events.
+	// JobEvents 是任务事件列表。
 	JobEvents []*JobEvent
 }
 
+// JobSpec represents the specification of a job.
+// JobSpec 表示任务的规范。
 type JobSpec struct {
-	// Job ID
-	// 任务 ID
+	// JobID is the job ID.
+	// JobID 是任务 ID。
 	JobID string
-	// Job name
-	// 任务名称
+	// JobName is the job name.
+	// JobName 是任务名称。
 	JobName string
-	// Job tags
-	// 任务标签
+	// Tags are the job tags.
+	// Tags 是任务标签。
 	Tags []string
 }
 
 // GetJobID gets the job ID.
 // GetJobID 获取任务 ID。
+//
+// Returns:
+//
+//	string - The job ID / 任务 ID
 func (m MonitorJobSpec) GetJobID() string {
 	return m.JobSpec.JobID
 }
 
 // GetJobName gets the job name.
 // GetJobName 获取任务名称。
+//
+// Returns:
+//
+//	string - The job name / 任务名称
 func (m MonitorJobSpec) GetJobName() string {
 	return m.JobSpec.JobName
 }
 
 // GetCurrentEvent gets the current job event.
-// GetCurrentEvent 获取当前任务事件
+// GetCurrentEvent 获取当前任务事件。
+//
+// Returns:
+//
+//	*JobEvent - The current job event / 当前任务事件
 func (m MonitorJobSpec) GetCurrentEvent() *JobEvent {
 	if len(m.JobEvents) == 0 {
 		return nil
@@ -172,22 +294,33 @@ func (m MonitorJobSpec) GetCurrentEvent() *JobEvent {
 
 var _ JobWatchInterface = (*MonitorJobSpec)(nil)
 
+// JobEvent represents a job event.
+// JobEvent 表示一个任务事件。
 type JobEvent struct {
+	// EventID is the event ID.
+	// EventID 是事件 ID。
 	EventID string
-	// Start time
-	// 开始时间
+	// StartTime is the start time.
+	// StartTime 是开始时间。
 	StartTime time.Time
-	// End time
-	// 结束时间
+	// EndTime is the end time.
+	// EndTime 是结束时间。
 	EndTime time.Time
-	// Job status
-	// 任务状态
+	// Status is the job status.
+	// Status 是任务状态。
 	Status gocron.JobStatus
-	// Job error
-	// 任务错误
+	// Err is the job error.
+	// Err 是任务错误。
 	Err error
 }
 
+// MarshalJSON marshals the JobEvent to JSON.
+// MarshalJSON 将 JobEvent 序列化为 JSON。
+//
+// Returns:
+//
+//	[]byte - The JSON bytes / JSON 字节
+//	error    - Error if marshaling fails / 如果序列化失败则返回错误
 func (m JobEvent) MarshalJSON() ([]byte, error) {
 	type Alias struct {
 		EventID   string           `json:"event_id"`
@@ -213,36 +346,60 @@ func (m JobEvent) MarshalJSON() ([]byte, error) {
 
 // GetStartTime gets the job start time.
 // GetStartTime 获取任务开始时间。
+//
+// Returns:
+//
+//	time.Time - The start time / 开始时间
 func (m JobEvent) GetStartTime() time.Time {
 	return m.StartTime
 }
 
 // GetEndTime gets the job end time.
 // GetEndTime 获取任务结束时间。
+//
+// Returns:
+//
+//	time.Time - The end time / 结束时间
 func (m JobEvent) GetEndTime() time.Time {
 	return m.EndTime
 }
 
 // GetStatus gets the job status.
 // GetStatus 获取任务状态。
+//
+// Returns:
+//
+//	gocron.JobStatus - The job status / 任务状态
 func (m JobEvent) GetStatus() gocron.JobStatus {
 	return m.Status
 }
 
 // GetSpendTime gets the job spend time.
-// GetSpendTime 获取任务花费时间
+// GetSpendTime 获取任务花费时间。
+//
+// Returns:
+//
+//	int64 - The spend time in milliseconds / 花费的时间（毫秒）
 func (m JobEvent) GetSpendTime() int64 {
 	return m.EndTime.UnixMilli() - m.StartTime.UnixMilli()
 }
 
 // GetTags gets the job tags.
 // GetTags 获取任务标签。
+//
+// Returns:
+//
+//	[]string - The job tags / 任务标签
 func (m MonitorJobSpec) GetTags() []string {
 	return m.JobSpec.Tags
 }
 
 // GetError gets the job error.
 // GetError 获取任务错误。
+//
+// Returns:
+//
+//	error - The job error / 任务错误
 func (m JobEvent) GetError() error {
 	return m.Err
 }
@@ -259,6 +416,14 @@ func (m JobEvent) GetError() error {
 
 // newDefaultSchedulerMonitor creates a new default scheduler monitor.
 // newDefaultSchedulerMonitor 创建一个默认的调度器监控。
+//
+// Parameters:
+//
+//	opts - Variable number of scheduler monitor options / 可变数量的调度器监控选项
+//
+// Returns:
+//
+//	*defaultSchedulerMonitor - The new scheduler monitor / 新的调度器监控
 func newDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedulerMonitor {
 	defaultSchedulerMonitor := &defaultSchedulerMonitor{
 		counter:    make(map[string]int),
@@ -275,6 +440,13 @@ func newDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedule
 
 // IncrementJob increments the execution count of a job.
 // IncrementJob 增加任务的执行次数。
+//
+// Parameters:
+//
+//	id     - The job ID / 任务 ID
+//	name   - The job name / 任务名称
+//	tags   - The job tags / 任务标签
+//	status - The job status / 任务状态
 func (s *defaultSchedulerMonitor) IncrementJob(id uuid.UUID, name string, tags []string, status gocron.JobStatus) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -288,6 +460,14 @@ func (s *defaultSchedulerMonitor) IncrementJob(id uuid.UUID, name string, tags [
 
 // RecordJobTiming records the execution time of a job.
 // RecordJobTiming 记录任务的执行时间。
+//
+// Parameters:
+//
+//	startTime - The start time / 开始时间
+//	endTime   - The end time / 结束时间
+//	id        - The job ID / 任务 ID
+//	name      - The job name / 任务名称
+//	tags      - The job tags / 任务标签
 func (s *defaultSchedulerMonitor) RecordJobTiming(startTime, endTime time.Time, id uuid.UUID, name string, tags []string) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -302,6 +482,16 @@ func (s *defaultSchedulerMonitor) RecordJobTiming(startTime, endTime time.Time, 
 
 // RecordJobTimingWithStatus records the execution time and status of a job.
 // RecordJobTimingWithStatus 记录任务的执行时间和状态。
+//
+// Parameters:
+//
+//	startTime - The start time / 开始时间
+//	endTime   - The end time / 结束时间
+//	id        - The job ID / 任务 ID
+//	name      - The job name / 任务名称
+//	tags      - The job tags / 任务标签
+//	status    - The job status / 任务状态
+//	err       - The job error / 任务错误
 func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime time.Time, id uuid.UUID, name string, tags []string, status gocron.JobStatus, err error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -322,16 +512,21 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 	}
 
 	s.UpdateJobEvents(id, name, newEvent)
+	// Create MonitorJobSpec containing the new event
 	// 创建包含新事件的 MonitorJobSpec
 	jobMonitorSpec := MonitorJobSpec{
 		JobSpec:   jobSpec,
-		JobEvents: []*JobEvent{newEvent}, // 包含当前事件
+		JobEvents: []*JobEvent{newEvent},
 	}
 	s.jobChan <- jobMonitorSpec
 }
 
 // Watch watches the execution of jobs.
 // Watch 监听任务的执行情况。
+//
+// Returns:
+//
+//	chan JobWatchInterface - The channel for job events / 任务事件的通道
 func (s *defaultSchedulerMonitor) Watch() chan JobWatchInterface {
 	return s.jobChan
 	// for {
