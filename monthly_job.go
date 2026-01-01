@@ -9,47 +9,59 @@ import (
 // MonthJob represents a job that runs on a monthly schedule.
 // MonthJob 表示一个按月调度运行的任务。
 type MonthJob struct {
-	// Unique identifier for the job
-	// 任务的唯一标识符
+	// ID is the unique identifier for the job.
+	// ID 是任务的唯一标识符。
 	ID string
-	// 任务的类型
-	// JobType of the job
+	// Type is the job type.
+	// Type 是任务的类型。
 	Type JobType
-	// Alias for the job
-	// 任务的别名
+	// Ali is the alias for the job.
+	// Ali 是任务的别名。
 	Ali string
-	// Name of the job
-	// 任务名称
+	// Name is the name of the job.
+	// Name 是任务的名称。
 	Name string
-	// Interval in months between job runs
-	// 任务运行的月数间隔
+	// Interval is the interval in months between job runs.
+	// Interval 是任务运行的月数间隔。
 	Interval uint
-	// Days of the month to run the job
-	// 任务每月运行的具体日期
+	// DaysOfTheMonth are the days of the month to run the job.
+	// DaysOfTheMonth 是任务每月运行的具体日期。
 	DaysOfTheMonth gocron.DaysOfTheMonth
-	// Specific times of day to run the job
-	// 任务每天运行的具体时间点
+	// AtTimes are the specific times of day to run the job.
+	// AtTimes 是任务每天运行的具体时间点。
 	AtTimes gocron.AtTimes
-	// Tags for the job
-	// 任务的标签
+	// Tag are the tags for the job.
+	// Tag 是任务的标签。
 	Tag []string
-	// The function to execute as the job
-	// 作为任务执行的函数
+	// TaskFunc is the function to execute as the job.
+	// TaskFunc 是作为任务执行的函数。
 	TaskFunc any
-	// Parameters to pass to the task function
-	// 传递给任务函数的参数
+	// Parameters are the parameters to pass to the task function.
+	// Parameters 是传递给任务函数的参数。
 	Parameters []any
-	// Event hooks for job lifecycle events
-	// 任务生命周期事件的钩子
+	// Hooks are the event hooks for job lifecycle events.
+	// Hooks 是任务生命周期事件的钩子。
 	Hooks []gocron.EventListener
-	// Function to watch job events
-	// 监听任务事件的函数
+	// WatchFunc is the function to watch job events.
+	// WatchFunc 是监听任务事件的函数。
 	WatchFunc func(event JobWatchInterface)
-	// Error state for the job
-	// 任务的错误状态
+	// err is the error state for the job.
+	// err 是任务的错误状态。
 	err error
 }
 
+// NewMonthJob creates a new MonthJob with the specified interval, days, and time.
+// NewMonthJob 创建一个具有指定间隔、日期和时间的 MonthJob。
+//
+// Parameters:
+//
+//	interval - The interval in months between job runs / 任务运行之间的月数间隔
+//	days    - The days of the month to run the job / 任务运行的月份日期
+//	atTime  - The specific times to run the job / 任务运行的具体时间
+//
+// Returns:
+//
+//	*MonthJob - The newly created monthly job / 新创建的月度任务
 func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTimes) *MonthJob {
 	return &MonthJob{
 		Interval:       interval,
@@ -61,6 +73,17 @@ func NewMonthJob(interval uint, days gocron.DaysOfTheMonth, atTime gocron.AtTime
 
 // NewMonthJobAtTime creates a new MonthJob that runs at specific days and times every month.
 // NewMonthJobAtTime 创建一个每月在特定日期和时间运行的 MonthJob。
+//
+// Parameters:
+//
+//	days   - The days of the month to run the job / 任务运行的月份日期
+//	hour   - The hour of the day (0-23) / 一天中的小时（0-23）
+//	minute - The minute of the hour (0-59) / 小时中的分钟（0-59）
+//	second - The second of the minute (0-59) / 分钟中的秒（0-59）
+//
+// Returns:
+//
+//	*MonthJob - The newly created monthly job / 新创建的月度任务
 func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 	if len(days) == 0 {
 		return &MonthJob{
@@ -75,6 +98,18 @@ func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 }
 
 // AtTime sets the time of day for the MonthJob to run.
+// AtTime 设置 MonthJob 运行的时间。
+//
+// Parameters:
+//
+//	days   - The days of the month to run the job / 任务运行的月份日期
+//	hour   - The hour of the day (0-23) / 一天中的小时（0-23）
+//	minute - The minute of the hour (0-59) / 小时中的分钟（0-59）
+//	second - The second of the minute (0-59) / 分钟中的秒（0-59）
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) AtTime(days []int, hour, minute, second int) *MonthJob {
 	if len(days) == 0 {
 		return &MonthJob{
@@ -90,6 +125,14 @@ func (c *MonthJob) AtTime(days []int, hour, minute, second int) *MonthJob {
 
 // Alias sets the alias for the MonthJob.
 // Alias 设置 MonthJob 的别名。
+//
+// Parameters:
+//
+//	alias - The alias string for the job / 任务的别名字符串
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) Alias(alias string) *MonthJob {
 	c.Ali = alias
 	return c
@@ -97,6 +140,14 @@ func (c *MonthJob) Alias(alias string) *MonthJob {
 
 // JobID sets the unique identifier for the MonthJob.
 // JobID 设置 MonthJob 的唯一标识符。
+//
+// Parameters:
+//
+//	id - The unique identifier string / 唯一标识符字符串
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) JobID(id string) *MonthJob {
 	c.ID = id
 	return c
@@ -104,6 +155,14 @@ func (c *MonthJob) JobID(id string) *MonthJob {
 
 // Names sets the name for the MonthJob. If name is empty, a UUID is generated.
 // Names 设置 MonthJob 的名称。如果名称为空，则生成一个 UUID。
+//
+// Parameters:
+//
+//	name - The name string for the job / 任务的名称字符串
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) Names(name string) *MonthJob {
 	if name == "" {
 		name = uuid.New().String()
@@ -113,7 +172,15 @@ func (c *MonthJob) Names(name string) *MonthJob {
 }
 
 // Tags sets the tags for the MonthJob.
-// Tags 设置 MonthJob 的标签
+// Tags 设置 MonthJob 的标签。
+//
+// Parameters:
+//
+//	tags - Variable number of tag strings / 可变数量的标签字符串
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) Tags(tags ...string) *MonthJob {
 	c.Tag = tags
 	return c
@@ -122,6 +189,15 @@ func (c *MonthJob) Tags(tags ...string) *MonthJob {
 // Task sets the task function and its parameters for the MonthJob.
 // It wraps the task with error and timeout handling.
 // Task 设置 MonthJob 的任务函数及其参数，并包装错误和超时处理。
+//
+// Parameters:
+//
+//	task      - The task function to execute / 要执行的任务函数
+//	parameters - Variable parameters for the task / 任务的可变参数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) Task(task any, parameters ...any) *MonthJob {
 	if task == nil {
 		c.err = errors.Join(c.err, ErrTaskFuncNil)
@@ -134,11 +210,31 @@ func (c *MonthJob) Task(task any, parameters ...any) *MonthJob {
 	return c
 }
 
+// Watch sets a watcher function for job events.
+// Watch 设置任务事件的监听函数。
+//
+// Parameters:
+//
+//	watch - The watch function for job events / 任务事件的监听函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) Watch(watch func(event JobWatchInterface)) *MonthJob {
 	c.WatchFunc = watch
 	return c
 }
 
+// addHooks adds one or more event listeners (hooks) to the MonthJob.
+// addHooks 向 MonthJob 添加一个或多个事件监听器（钩子）。
+//
+// Parameters:
+//
+//	hook - Variable number of event listeners / 可变数量的事件监听器
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) addHooks(hook ...gocron.EventListener) *MonthJob {
 	if c.Hooks == nil {
 		c.Hooks = make([]gocron.EventListener, 0)
@@ -147,6 +243,12 @@ func (c *MonthJob) addHooks(hook ...gocron.EventListener) *MonthJob {
 	return c
 }
 
+// DefaultHooks adds a set of default event listeners to the MonthJob.
+// DefaultHooks 向 MonthJob 添加一组默认事件监听器。
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) DefaultHooks() *MonthJob {
 	return c.addHooks(
 		gocron.BeforeJobRuns(defaultBeforeJobRuns),
@@ -157,32 +259,86 @@ func (c *MonthJob) DefaultHooks() *MonthJob {
 		gocron.AfterLockError(defaultAfterLockError))
 }
 
-// BeforeJobRuns 添加任务运行前的钩子函数
+// BeforeJobRuns adds a hook to be called before the job runs.
+// BeforeJobRuns 添加一个在任务运行前调用的钩子。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function with job ID and name / 包含任务ID和名称的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) BeforeJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *MonthJob {
 	return c.addHooks(gocron.BeforeJobRuns(eventListenerFunc))
 }
 
-// BeforeJobRunsSkipIfBeforeFuncErrors 添加任务运行前的钩子函数（如果前置函数出错则跳过）
+// BeforeJobRunsSkipIfBeforeFuncErrors adds a hook to be called before the job runs, skipping if the hook returns an error.
+// BeforeJobRunsSkipIfBeforeFuncErrors 添加一个在任务运行前调用的钩子，如果钩子返回错误则跳过。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function that returns error / 返回错误的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc func(jobID uuid.UUID, jobName string) error) *MonthJob {
 	return c.addHooks(gocron.BeforeJobRunsSkipIfBeforeFuncErrors(eventListenerFunc))
 }
 
-// AfterJobRuns 添加任务运行后的钩子函数
+// AfterJobRuns adds a hook to be called after the job runs.
+// AfterJobRuns 添加一个在任务运行后调用的钩子。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function with job ID and name / 包含任务ID和名称的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) AfterJobRuns(eventListenerFunc func(jobID uuid.UUID, jobName string)) *MonthJob {
 	return c.addHooks(gocron.AfterJobRuns(eventListenerFunc))
 }
 
-// AfterJobRunsWithError 添加任务运行出错时的钩子函数
+// AfterJobRunsWithError adds a hook to be called after the job runs with an error.
+// AfterJobRunsWithError 添加一个在任务运行出错后调用的钩子。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function with job ID, name, and error / 包含任务ID、名称和错误的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) AfterJobRunsWithError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *MonthJob {
 	return c.addHooks(gocron.AfterJobRunsWithError(eventListenerFunc))
 }
 
-// AfterJobRunsWithPanic 添加任务运行发生 panic 时的钩子函数
+// AfterJobRunsWithPanic adds a hook to be called after the job panics.
+// AfterJobRunsWithPanic 添加一个在任务发生 panic 后调用的钩子。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function with job ID, name, and recovered data / 包含任务ID、名称和恢复数据的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) AfterJobRunsWithPanic(eventListenerFunc func(jobID uuid.UUID, jobName string, recoverData any)) *MonthJob {
 	return c.addHooks(gocron.AfterJobRunsWithPanic(eventListenerFunc))
 }
 
-// AfterLockError 添加任务加锁出错时的钩子函数
+// AfterLockError adds a hook to be called when a lock error occurs during job execution.
+// AfterLockError 添加一个在任务加锁出错时调用的钩子。
+//
+// Parameters:
+//
+//	eventListenerFunc - The callback function with job ID, name, and error / 包含任务ID、名称和错误的回调函数
+//
+// Returns:
+//
+//	*MonthJob - The monthly job for method chaining / 支持链式调用的月度任务
 func (c *MonthJob) AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) *MonthJob {
 	return c.addHooks(gocron.AfterLockError(eventListenerFunc))
 }
