@@ -5,7 +5,6 @@ import "time"
 const (
 	AliasOptionName      = "alias"
 	WatchOptionName      = "watch"
-	TimoutOptionName     = "timeout"
 	WebMonitorOptionName = "web_monitor"
 	LimitOptionName      = "limit"
 	PrometheusOptionName = "prometheus"
@@ -103,20 +102,6 @@ type TimeoutOption struct {
 	enabled bool // Whether the timeout option is enabled
 	// 超时时间
 	timeout time.Duration
-}
-
-var _ ScheduleOption = &TimeoutOption{}
-
-func (t *TimeoutOption) Name() string {
-	return TimoutOptionName
-}
-
-func (t *TimeoutOption) Enable() bool {
-	return t.enabled
-}
-
-func (t *TimeoutOption) Timeout() time.Duration {
-	return t.timeout
 }
 
 type LimitOption struct {

@@ -92,10 +92,6 @@ func (s *Scheduler) Enable(option string) bool {
 		if s.schOptions.watch != nil {
 			return s.schOptions.watch.Enable()
 		}
-	case TimoutOptionName:
-		if s.schOptions.timeout != nil {
-			return s.schOptions.timeout.Enable()
-		}
 	case WebMonitorOptionName:
 		if s.schOptions.webMonitor != nil {
 			return s.schOptions.webMonitor.Enable()
@@ -792,10 +788,6 @@ func (s *Scheduler) AddCronJob(job *CronJob) (gocron.Job, error) {
 	if job.Expr == "" {
 		return nil, fmt.Errorf("chrono:job %s has nil expr", job.Name)
 	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
-	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
 			return nil, ErrMoreLimit
@@ -887,10 +879,6 @@ func (s *Scheduler) AddOnceJob(job *OnceJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
-	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
 			return nil, ErrMoreLimit
@@ -971,10 +959,6 @@ func (s *Scheduler) AddIntervalJob(job *IntervalJob) (gocron.Job, error) {
 	// 检查任务函数是否存在
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
-	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
 	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
@@ -1059,10 +1043,6 @@ func (s *Scheduler) AddDailyJob(job *DailyJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
-	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
 			return nil, ErrMoreLimit
@@ -1144,10 +1124,6 @@ func (s *Scheduler) AddWeeklyJob(job *WeeklyJob) (gocron.Job, error) {
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
 	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
-	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
 			return nil, ErrMoreLimit
@@ -1228,10 +1204,6 @@ func (s *Scheduler) AddMonthlyJob(job *MonthJob) (gocron.Job, error) {
 	// 检查任务函数是否存在
 	if job.TaskFunc == nil {
 		return nil, fmt.Errorf("chrono:job %s has no task function", job.Name)
-	}
-	// 优先使用每个Job的Timeout
-	if s.Enable(TimoutOptionName) && job.timeout <= 0 {
-		_ = job.Timeout(s.schOptions.timeout.Timeout())
 	}
 	if s.Enable(LimitOptionName) {
 		if !s.CheckLimit() {
