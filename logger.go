@@ -5,6 +5,7 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+	"time"
 
 	"gopkg.in/natefinch/lumberjack.v2"
 )
@@ -31,7 +32,7 @@ var defaultLoggerConfig = LoggerConfig{
 	ReplaceAttrFunc: func(groups []string, a slog.Attr) slog.Attr {
 		if a.Key == slog.TimeKey {
 			t := a.Value.Time()
-			a.Value = slog.StringValue(t.UTC().Format("2006-01-02 15:04:05"))
+			a.Value = slog.StringValue(t.UTC().Format(time.DateTime))
 		}
 		return a
 	},
