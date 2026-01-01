@@ -11,10 +11,6 @@ import (
 	"github.com/google/uuid"
 )
 
-const (
-	defaultTimeout = 15 * time.Second
-)
-
 var defaultWatch = EmptyWatchFunc
 
 var DefaultScheduler *Scheduler
@@ -140,17 +136,6 @@ func WithWatch(watchFunc func(event JobWatchInterface)) SchedulerOption {
 			return
 		}
 		s.watch = &WatchOption{enabled: true, watchFunc: defaultWatch}
-	}
-}
-
-// WithTimeout sets the watch option.
-// WithTimeout 设置监听选项。
-func WithTimeout(timeout time.Duration) SchedulerOption {
-	return func(s *SchedulerOptions) {
-		if timeout <= 0 {
-			timeout = defaultTimeout
-		}
-		s.timeout = &TimeoutOption{enabled: true, timeout: timeout}
 	}
 }
 
