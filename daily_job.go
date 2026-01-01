@@ -70,6 +70,7 @@ func NewDailyJobAtTime(hour, minute, second uint) *DailyJob {
 	return &DailyJob{
 		Interval: 1,
 		AtTimes:  gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
+		Type:     JobTypeDaily,
 	}
 }
 

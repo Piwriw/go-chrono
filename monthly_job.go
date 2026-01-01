@@ -94,6 +94,7 @@ func NewMonthJobAtTime(days []int, hour, minute, second int) *MonthJob {
 		Interval:       1,
 		DaysOfTheMonth: gocron.NewDaysOfTheMonth(days[0], days[1:]...),
 		AtTimes:        gocron.NewAtTimes(gocron.NewAtTime(uint(hour), uint(minute), uint(second))),
+		Type:           JobTypeMonthly,
 	}
 }
 
@@ -120,6 +121,7 @@ func (c *MonthJob) AtTime(days []int, hour, minute, second int) *MonthJob {
 		Interval:       1,
 		DaysOfTheMonth: gocron.NewDaysOfTheMonth(days[0], days[1:]...),
 		AtTimes:        gocron.NewAtTimes(gocron.NewAtTime(uint(hour), uint(minute), uint(second))),
+		Type:           JobTypeMonthly,
 	}
 }
 

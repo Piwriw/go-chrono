@@ -98,6 +98,7 @@ func NewWeeklyJobAtTime(days []time.Weekday, hour, minute, second uint) *WeeklyJ
 		Interval:      1,
 		DaysOfTheWeek: gocron.NewWeekdays(days[0], days[1:]...),
 		WorkTimes:     gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
+		Type:          JobTypeWeekly,
 	}
 }
 
@@ -126,6 +127,7 @@ func (c *WeeklyJob) AtTimes(days []time.Weekday, hour, minute, second uint) *Wee
 		Interval:      1,
 		DaysOfTheWeek: gocron.NewWeekdays(days[0], days[1:]...),
 		WorkTimes:     gocron.NewAtTimes(gocron.NewAtTime(hour, minute, second)),
+		Type:          JobTypeWeekly,
 	}
 }
 
