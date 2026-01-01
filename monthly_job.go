@@ -1,12 +1,7 @@
 package chrono
 
 import (
-	"context"
 	"errors"
-	"fmt"
-	"log/slog"
-	"time"
-
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 )
@@ -50,9 +45,6 @@ type MonthJob struct {
 	// Function to watch job events
 	// 监听任务事件的函数
 	WatchFunc func(event JobWatchInterface)
-	// Timeout for the job execution
-	// 任务执行的超时时间
-	timeout time.Duration
 	// Error state for the job
 	// 任务的错误状态
 	err error
@@ -135,51 +127,10 @@ func (c *MonthJob) Task(task any, parameters ...any) *MonthJob {
 		c.err = errors.Join(c.err, ErrTaskFuncNil)
 		return c
 	}
+	c.Parameters = append(c.Parameters, parameters)
 	c.TaskFunc = func() error {
-		var ctx context.Context
-		var cancel context.CancelFunc
-		// 如果设置了超时时间，则使用 context.WithTimeout
-		if c.timeout > 0 {
-			ctx, cancel = context.WithTimeout(context.Background(), c.timeout)
-			defer cancel()
-		} else {
-			// 如果没有设置超时时间，则直接使用背景上下文
-			ctx = context.Background()
-		}
-
-		done := make(chan error, 1)
-		go func() {
-			defer func() {
-				if r := recover(); r != nil {
-					done <- fmt.Errorf("chrono:task panicked: %v", r)
-				}
-			}()
-			done <- callJobFunc(task, parameters...)
-		}()
-
-		select {
-		case err := <-done:
-			if err != nil {
-				slog.Error("chrono:task exec failed", "err", err)
-				return ErrTaskFailed
-			}
-		case <-ctx.Done():
-			return ErrTaskTimeout
-		}
-		return nil
+		return callJobFunc(task, c.Parameters...)
 	}
-	c.Parameters = append(c.Parameters, parameters...)
-	return c
-}
-
-// Timeout sets the timeout duration for the MonthJob execution.
-// Timeout 设置 MonthJob 执行的超时时间。
-func (c *MonthJob) Timeout(timeout time.Duration) *MonthJob {
-	if timeout <= 0 {
-		c.err = errors.Join(c.err, ErrValidateTimeout)
-		return c
-	}
-	c.timeout = timeout
 	return c
 }
 
