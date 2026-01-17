@@ -1,6 +1,10 @@
 package chrono
 
-import "time"
+import (
+	"time"
+
+	"github.com/piwriw/go-chrono/retry"
+)
 
 const (
 	// AliasOptionName is the name constant for the alias option.
@@ -18,6 +22,9 @@ const (
 	// PrometheusOptionName is the name constant for the prometheus option.
 	// PrometheusOptionName 是 Prometheus 选项的名称常量。
 	PrometheusOptionName = "prometheus"
+	// RetryOptionName is the name constant for the retry option.
+	// RetryOptionName 是重试选项的名称常量。
+	RetryOptionName = "retry"
 )
 
 // ScheduleOption is the interface for options in chrono.
@@ -248,4 +255,47 @@ func (p *PrometheusOption) Enable() bool {
 //	string - The prometheus address / Prometheus 地址
 func (p *PrometheusOption) Address() string {
 	return p.address
+}
+
+// RetryOption represents the retry option.
+// RetryOption 表示重试选项。
+type RetryOption struct {
+	// enabled indicates whether the retry option is enabled.
+	// enabled 表示是否启用重试选项。
+	enabled bool
+	// config is the retry configuration.
+	// config 是重试配置。
+	config *retry.RetryConfig
+}
+
+var _ ScheduleOption = &RetryOption{}
+
+// Name returns the name of the retry option.
+// Name 返回重试选项的名称。
+//
+// Returns:
+//
+//	string - The option name / 选项名称
+func (r *RetryOption) Name() string {
+	return RetryOptionName
+}
+
+// Enable returns whether the retry option is enabled.
+// Enable 返回重试选项是否启用。
+//
+// Returns:
+//
+//	bool - True if enabled, false otherwise / 如果启用返回 true，否则返回 false
+func (r *RetryOption) Enable() bool {
+	return r.enabled
+}
+
+// Config returns the retry configuration.
+// Config 返回重试配置。
+//
+// Returns:
+//
+//	*retry.RetryConfig - The retry configuration / 重试配置
+func (r *RetryOption) Config() *retry.RetryConfig {
+	return r.config
 }
