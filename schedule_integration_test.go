@@ -143,7 +143,6 @@ func TestTimeOutJob(t *testing.T) {
 	name := "Joohwan"
 	intervalJob := NewIntervalJob(time.Second*20).
 		Names("TestTimeOutJob").
-		Timeout(time.Second*80).
 		Task(task, 1, 2).
 		Watch(func(event JobWatchInterface) {
 			// fmt.Println("StartTime", event.StartTime.Format("2006-01-02 15-04-05"),
@@ -179,7 +178,6 @@ func TestWithNoTimeOutJob(t *testing.T) {
 	}
 	intervalJob := NewIntervalJob(time.Second*20).
 		Names("TestWithNoTimeOutJob").
-		Timeout(time.Second*80).
 		Task(task, 1, 2).Watch(func(event JobWatchInterface) {
 		//fmt.Println("StartTime", event.GetStartTime().Format("2006-04-02 15-04-05"),
 		//	"EndTime", event.GetEndTime().Format("2006-04-02 15-04-05"),
@@ -212,7 +210,6 @@ func TestValidateTimeOutJob(t *testing.T) {
 	}
 	intervalJob := NewIntervalJob(time.Second*20).
 		Names("TestValidateTimeOutJob").
-		Timeout(-1).
 		Task(task, 1, 2).Watch(func(event JobWatchInterface) {
 		//fmt.Println("StartTime", event.GetStartTime().Format("2006-04-02 15-04-05"),
 		//	"EndTime", event.GetEndTime().Format("2006-04-02 15-04-05"),
