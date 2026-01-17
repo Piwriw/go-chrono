@@ -4,6 +4,7 @@ package chrono
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -192,5 +193,57 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 
 		// Second copy should not be affected
 		assert.NotEqual(t, history1[0].EventID, history2[0].EventID, "should return independent copies")
+	})
+
+	t.Run("WithMaxRetryHistory configures retry history limit", func(t *testing.T) {
+		t.Parallel()
+
+		// Create monitor with custom max retry history
+		customMonitor := newDefaultSchedulerMonitor(WithMaxRetryHistory(3))
+
+		jobID := "test-limit-job"
+		// Add 5 retry events
+		for i := 0; i < 5; i++ {
+			event := &retry.RetryEvent{
+				EventID:         fmt.Sprintf("retry-%d", i),
+				OriginalEventID: jobID,
+				Attempt:         i,
+				StartTime:       time.Now(),
+				EndTime:         time.Now(),
+				NextRetryIn:     1 * time.Second,
+			}
+			customMonitor.RecordRetryEvent(event)
+		}
+
+		history := customMonitor.GetRetryHistory(jobID)
+		// Should only keep the last 3 events
+		assert.Len(t, history, 3, "should keep only maxRetryHistory records")
+		assert.Equal(t, "retry-2", history[0].EventID, "first event should be retry-2")
+		assert.Equal(t, "retry-4", history[2].EventID, "last event should be retry-4")
+	})
+
+	t.Run("WithMaxRetryHistory zero uses default", func(t *testing.T) {
+		t.Parallel()
+
+		// Create monitor with zero max retry history (should use default)
+		zeroMonitor := newDefaultSchedulerMonitor(WithMaxRetryHistory(0))
+
+		jobID := "test-zero-job"
+		// Add 15 retry events (more than default 10)
+		for i := 0; i < 15; i++ {
+			event := &retry.RetryEvent{
+				EventID:         fmt.Sprintf("retry-%d", i),
+				OriginalEventID: jobID,
+				Attempt:         i,
+				StartTime:       time.Now(),
+				EndTime:         time.Now(),
+				NextRetryIn:     1 * time.Second,
+			}
+			zeroMonitor.RecordRetryEvent(event)
+		}
+
+		history := zeroMonitor.GetRetryHistory(jobID)
+		// Should keep default 10 records
+		assert.Len(t, history, 10, "should use default maxRetryHistory when zero is specified")
 	})
 }

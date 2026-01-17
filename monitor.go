@@ -15,6 +15,9 @@ const (
 	// defaultMaxRecords is the default maximum number of job event records to keep.
 	// defaultMaxRecords 是默认保留的任务事件记录的最大数量。
 	defaultMaxRecords = 3
+	// defaultMaxRetryHistory is the default maximum number of retry records to keep.
+	// defaultMaxRetryHistory 是默认保留的重试记录的最大数量。
+	defaultMaxRetryHistory = 10
 )
 
 // defaultEventIDGenerator is the default event ID generator.
@@ -144,6 +147,9 @@ type defaultSchedulerMonitor struct {
 	// eventIDCli is the event ID generator.
 	// eventIDCli 是事件 ID 生成器。
 	eventIDCli EventIDGenerator
+	// maxRetryHistory is the maximum number of retry records to keep per job.
+	// maxRetryHistory 是每个任务保留的重试记录的最大数量。
+	maxRetryHistory int
 	// retryHistory stores the retry history for jobs.
 	// retryHistory 存储任务的重试历史。
 	retryHistory map[string][]*retry.RetryEvent
@@ -192,6 +198,26 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 			return
 		}
 		s.eventIDCli = eventIDGenerator
+	}
+}
+
+// WithMaxRetryHistory sets the maximum number of retry records to keep per job.
+// WithMaxRetryHistory 设置每个任务保留的重试记录的最大数量。
+//
+// Parameters:
+//
+//	maxRetryHistory - The maximum number of retry records / 最大重试记录数量
+//
+// Returns:
+//
+//	func(*defaultSchedulerMonitor) - The scheduler monitor option / 调度器监控选项
+func WithMaxRetryHistory(maxRetryHistory int) func(*defaultSchedulerMonitor) {
+	return func(s *defaultSchedulerMonitor) {
+		if maxRetryHistory <= 0 {
+			s.maxRetryHistory = defaultMaxRetryHistory
+			return
+		}
+		s.maxRetryHistory = maxRetryHistory
 	}
 }
 
@@ -306,10 +332,7 @@ func (s *defaultSchedulerMonitor) RecordRetryEvent(event *retry.RetryEvent) {
 		s.retryHistory[jobID] = make([]*retry.RetryEvent, 0)
 	}
 
-	// Keep at most 100 retry records
-	// 最多保留 100 条重试记录
-	const maxRetryHistory = 100
-	if len(s.retryHistory[jobID]) >= maxRetryHistory {
+	if len(s.retryHistory[jobID]) >= s.maxRetryHistory {
 		s.retryHistory[jobID] = s.retryHistory[jobID][1:]
 	}
 
@@ -531,12 +554,13 @@ func (m JobEvent) GetError() error {
 //	*defaultSchedulerMonitor - The new scheduler monitor / 新的调度器监控
 func newDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedulerMonitor {
 	defaultSchedulerMonitor := &defaultSchedulerMonitor{
-		counter:      make(map[string]int),
-		time:         make(map[string][]time.Duration),
-		jobChan:      make(chan JobWatchInterface, 100),
-		jobRecord:    make(map[string]MonitorJobSpec),
-		eventIDCli:   defaultEventIDGenerator,
-		retryHistory: make(map[string][]*retry.RetryEvent),
+		counter:         make(map[string]int),
+		time:            make(map[string][]time.Duration),
+		jobChan:         make(chan JobWatchInterface, 100),
+		jobRecord:       make(map[string]MonitorJobSpec),
+		eventIDCli:      defaultEventIDGenerator,
+		maxRetryHistory: defaultMaxRetryHistory,
+		retryHistory:    make(map[string][]*retry.RetryEvent),
 	}
 	for _, opt := range opts {
 		opt(defaultSchedulerMonitor)
