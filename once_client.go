@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/piwriw/go-chrono/retry"
 )
 
 // OnceJobClientInterface defines the interface for configuring and managing one-time jobs.
@@ -134,6 +135,25 @@ type OnceJobClientInterface interface {
 	// Returns:
 	//	OnceJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) OnceJobClientInterface
+
+	// WithRetry sets the retry configuration for the job.
+	// 设置任务的重试配置。
+	//
+	// Parameters:
+	//	maxRetries - Maximum number of retries / 最大重试次数
+	//	policy     - Retry policy / 重试策略
+	// Returns:
+	//	OnceJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetry(maxRetries int, policy retry.RetryPolicy) OnceJobClientInterface
+
+	// WithRetryConfig sets the complete retry configuration.
+	// 设置完整的重试配置。
+	//
+	// Parameters:
+	//	config - Retry configuration / 重试配置
+	// Returns:
+	//	OnceJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetryConfig(config *retry.RetryConfig) OnceJobClientInterface
 
 	// Add adds the configured one-time job to the scheduler.
 	// 将配置的一次性任务添加到调度器。
@@ -475,4 +495,52 @@ func (o *OnceJobClient) Get() (gocron.Job, error) {
 		return o.scheduler.GetJobByName(o.job.Name)
 	}
 	return nil, ErrJobNotFound
+}
+
+// WithRetry sets the retry configuration for the job.
+// 设置任务的重试配置。
+//
+// Parameters:
+//
+//	maxRetries - Maximum number of retries / 最大重试次数
+//	policy     - Retry policy / 重试策略
+//
+// Returns:
+//
+//	OnceJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (o *OnceJobClient) WithRetry(maxRetries int, policy retry.RetryPolicy) OnceJobClientInterface {
+	if o.job == nil {
+		return o
+	}
+	if o.job.jobOptions == nil {
+		o.job.jobOptions = newJobOptions()
+	}
+	o.job.jobOptions.retryConfig = &retry.RetryConfig{
+		MaxRetries: maxRetries,
+		Policy:     policy,
+	}
+	o.job.jobOptions.retryEnabled = true
+	return o
+}
+
+// WithRetryConfig sets the complete retry configuration.
+// 设置完整的重试配置。
+//
+// Parameters:
+//
+//	config - Retry configuration / 重试配置
+//
+// Returns:
+//
+//	OnceJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (o *OnceJobClient) WithRetryConfig(config *retry.RetryConfig) OnceJobClientInterface {
+	if o.job == nil {
+		return o
+	}
+	if o.job.jobOptions == nil {
+		o.job.jobOptions = newJobOptions()
+	}
+	o.job.jobOptions.retryConfig = config
+	o.job.jobOptions.retryEnabled = true
+	return o
 }

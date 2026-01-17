@@ -3,6 +3,7 @@ package chrono
 import (
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/piwriw/go-chrono/retry"
 )
 
 // MonthJobClientInterface defines the interface for configuring and managing monthly jobs.
@@ -135,6 +136,25 @@ type MonthJobClientInterface interface {
 	// Returns:
 	//	MonthJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) MonthJobClientInterface
+
+	// WithRetry sets the retry configuration for the job.
+	// 设置任务的重试配置。
+	//
+	// Parameters:
+	//	maxRetries - Maximum number of retries / 最大重试次数
+	//	policy     - Retry policy / 重试策略
+	// Returns:
+	//	MonthJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetry(maxRetries int, policy retry.RetryPolicy) MonthJobClientInterface
+
+	// WithRetryConfig sets the complete retry configuration.
+	// 设置完整的重试配置。
+	//
+	// Parameters:
+	//	config - Retry configuration / 重试配置
+	// Returns:
+	//	MonthJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetryConfig(config *retry.RetryConfig) MonthJobClientInterface
 
 	// Add adds the configured monthly job to the scheduler.
 	// 将配置的月度任务添加到调度器。
@@ -482,4 +502,52 @@ func (m *MonthJobClient) Get() (gocron.Job, error) {
 		return m.scheduler.GetJobByName(m.job.Name)
 	}
 	return nil, ErrJobNotFound
+}
+
+// WithRetry sets the retry configuration for the job.
+// 设置任务的重试配置。
+//
+// Parameters:
+//
+//	maxRetries - Maximum number of retries / 最大重试次数
+//	policy     - Retry policy / 重试策略
+//
+// Returns:
+//
+//	MonthJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (m *MonthJobClient) WithRetry(maxRetries int, policy retry.RetryPolicy) MonthJobClientInterface {
+	if m.job == nil {
+		return m
+	}
+	if m.job.jobOptions == nil {
+		m.job.jobOptions = newJobOptions()
+	}
+	m.job.jobOptions.retryConfig = &retry.RetryConfig{
+		MaxRetries: maxRetries,
+		Policy:     policy,
+	}
+	m.job.jobOptions.retryEnabled = true
+	return m
+}
+
+// WithRetryConfig sets the complete retry configuration.
+// 设置完整的重试配置。
+//
+// Parameters:
+//
+//	config - Retry configuration / 重试配置
+//
+// Returns:
+//
+//	MonthJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (m *MonthJobClient) WithRetryConfig(config *retry.RetryConfig) MonthJobClientInterface {
+	if m.job == nil {
+		return m
+	}
+	if m.job.jobOptions == nil {
+		m.job.jobOptions = newJobOptions()
+	}
+	m.job.jobOptions.retryConfig = config
+	m.job.jobOptions.retryEnabled = true
+	return m
 }

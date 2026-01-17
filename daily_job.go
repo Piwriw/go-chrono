@@ -2,6 +2,7 @@ package chrono
 
 import (
 	"errors"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 )
@@ -31,6 +32,8 @@ type DailyJob struct {
 	Hooks []gocron.EventListener
 	// WatchFunc monitors job events / 监听任务事件的函数
 	WatchFunc func(event JobWatchInterface)
+	// jobOptions holds job-level options / 保存任务级别的选项
+	jobOptions *jobOptions
 	// err holds any configuration errors / 存储配置错误
 	err error
 }

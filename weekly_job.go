@@ -47,6 +47,9 @@ type WeeklyJob struct {
 	// Function to watch job events
 	// 监听任务事件的函数
 	WatchFunc func(event JobWatchInterface)
+	// jobOptions holds job-level options
+	// jobOptions 保存任务级别的选项
+	jobOptions *jobOptions
 	// Error state for the job
 	// 任务的错误状态
 	err error
