@@ -48,6 +48,7 @@ type RetryEvent struct {
 // MarshalJSON 序列化为 JSON
 //
 // Returns:
+//
 //	[]byte - JSON bytes / JSON 字节数组
 //	error - Error if serialization fails / 序列化失败时的错误
 func (r *RetryEvent) MarshalJSON() ([]byte, error) {
@@ -69,6 +70,7 @@ func (r *RetryEvent) MarshalJSON() ([]byte, error) {
 // GetDuration 获取执行耗时
 //
 // Returns:
+//
 //	time.Duration - Execution duration / 执行耗时
 func (r *RetryEvent) GetDuration() time.Duration {
 	return r.EndTime.Sub(r.StartTime)
@@ -78,6 +80,7 @@ func (r *RetryEvent) GetDuration() time.Duration {
 // NewRetryEvent 创建新的重试事件
 //
 // Parameters:
+//
 //	eventID - Event ID / 事件 ID
 //	originalEventID - Original task event ID / 原始任务事件 ID
 //	attempt - Retry attempt number (starts from 0) / 重试次数（从 0 开始）
@@ -87,6 +90,7 @@ func (r *RetryEvent) GetDuration() time.Duration {
 //	nextRetryIn - Duration until next retry / 下次重试间隔
 //
 // Returns:
+//
 //	*RetryEvent - New retry event / 新的重试事件
 func NewRetryEvent(eventID, originalEventID string, attempt int, startTime, endTime time.Time, err error, nextRetryIn time.Duration) *RetryEvent {
 	errMsg := ""

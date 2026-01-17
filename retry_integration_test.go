@@ -77,7 +77,7 @@ func TestRetryConfigCreation(t *testing.T) {
 		// Fixed interval
 		config1 := &retry.RetryConfig{
 			MaxRetries: 5,
-			Policy:     retry.NewFixedIntervalPolicy(2*time.Second),
+			Policy:     retry.NewFixedIntervalPolicy(2 * time.Second),
 		}
 		assert.NotNil(t, config1, "fixed interval config should not be nil")
 

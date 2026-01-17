@@ -106,9 +106,9 @@ func TestRetryExecutor_ExecuteWithRetry_RetryableErrors(t *testing.T) {
 	persistentErr := errors.New("persistent error")
 
 	config := &RetryConfig{
-		MaxRetries:       3,
-		Policy:           NewFixedIntervalPolicy(10 * time.Millisecond),
-		RetryableErrors:  []error{temporaryErr},
+		MaxRetries:      3,
+		Policy:          NewFixedIntervalPolicy(10 * time.Millisecond),
+		RetryableErrors: []error{temporaryErr},
 	}
 
 	executor := NewRetryExecutor(config, uuid.New(), "test-job")

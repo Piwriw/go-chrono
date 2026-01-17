@@ -1,8 +1,9 @@
 package chrono
 
 import (
-	"github.com/piwriw/go-chrono/retry"
 	"sync"
+
+	"github.com/piwriw/go-chrono/retry"
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
