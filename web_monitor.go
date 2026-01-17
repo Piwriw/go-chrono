@@ -29,10 +29,11 @@ func NewWebMonitor(s *Scheduler, addr string) *WebMonitor {
 
 func (wm *WebMonitor) Start() error {
 	mux := http.NewServeMux()
-	endpoints := []string{"/healthz", "/jobs"}
+	endpoints := []string{"/healthz", "/jobs", "/jobs/{job_id}/retries"}
 
 	mux.HandleFunc("/healthz", wm.handleHealthz)
 	mux.HandleFunc("/jobs", wm.handleJobs)
+	mux.HandleFunc("/jobs/", wm.handleJobRetries)
 
 	if err := validateURLAddr(wm.addr); err != nil {
 		return fmt.Errorf("invalid address: %v", err)
@@ -136,5 +137,46 @@ func (wm *WebMonitor) handleJobs(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err = json.NewEncoder(w).Encode(resJobs); err != nil {
 		http.Error(w, "failed to encode response", http.StatusInternalServerError)
+	}
+}
+
+// handleJobRetries handles requests to get retry history for a specific job.
+// handleJobRetries 处理获取特定任务重试历史的请求。
+//
+// URL pattern: /jobs/{job_id}/retries
+//
+// Parameters:
+//
+//	w - HTTP response writer / HTTP 响应写入器
+//	r - HTTP request / HTTP 请求
+func (wm *WebMonitor) handleJobRetries(w http.ResponseWriter, r *http.Request) {
+	// Extract job ID from URL path
+	// 从 URL 路径中提取任务 ID
+	// Expected format: /jobs/{job_id}/retries
+	path := r.URL.Path
+	// Remove /jobs/ prefix and /retries suffix
+	// 移除 /jobs/ 前缀和 /retries 后缀
+	parts := strings.Split(strings.TrimPrefix(path, "/jobs/"), "/")
+	if len(parts) < 2 || parts[1] != "retries" {
+		http.Error(w, "invalid URL format, expected /jobs/{job_id}/retries", http.StatusBadRequest)
+		return
+	}
+
+	jobID := parts[0]
+	if jobID == "" {
+		http.Error(w, "job_id is required", http.StatusBadRequest)
+		return
+	}
+
+	// Get retry history from monitor
+	// 从监控器获取重试历史
+	history := wm.scheduleMonitor.GetRetryHistory(jobID)
+
+	// Return JSON response
+	// 返回 JSON 响应
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(history); err != nil {
+		http.Error(w, "failed to encode retry history", http.StatusInternalServerError)
+		slog.Error("failed to encode retry history", "error", err)
 	}
 }
