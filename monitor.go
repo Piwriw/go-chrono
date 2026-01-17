@@ -8,12 +8,16 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/piwriw/go-chrono/retry"
 )
 
 const (
 	// defaultMaxRecords is the default maximum number of job event records to keep.
 	// defaultMaxRecords 是默认保留的任务事件记录的最大数量。
 	defaultMaxRecords = 3
+	// defaultMaxRetryHistory is the default maximum number of retry records to keep.
+	// defaultMaxRetryHistory 是默认保留的重试记录的最大数量。
+	defaultMaxRetryHistory = 10
 )
 
 // defaultEventIDGenerator is the default event ID generator.
@@ -100,6 +104,23 @@ type SchedulerMonitor interface {
 	// Returns:
 	//	[]*JobEvent - The list of job events / 任务事件列表
 	GetJobEvents(jobID string) []*JobEvent
+
+	// GetRetryHistory gets the retry history for a job.
+	// 获取任务的重试历史。
+	//
+	// Parameters:
+	//	jobID - The job ID / 任务 ID
+	//
+	// Returns:
+	//	[]*retry.RetryEvent - The list of retry events / 重试事件列表
+	GetRetryHistory(jobID string) []*retry.RetryEvent
+
+	// RecordRetryEvent records a retry event.
+	// 记录重试事件。
+	//
+	// Parameters:
+	//	event - The retry event to record / 要记录的重试事件
+	RecordRetryEvent(event *retry.RetryEvent)
 }
 
 // defaultSchedulerMonitor is the default implementation of SchedulerMonitor.
@@ -126,6 +147,12 @@ type defaultSchedulerMonitor struct {
 	// eventIDCli is the event ID generator.
 	// eventIDCli 是事件 ID 生成器。
 	eventIDCli EventIDGenerator
+	// maxRetryHistory is the maximum number of retry records to keep per job.
+	// maxRetryHistory 是每个任务保留的重试记录的最大数量。
+	maxRetryHistory int
+	// retryHistory stores the retry history for jobs.
+	// retryHistory 存储任务的重试历史。
+	retryHistory map[string][]*retry.RetryEvent
 }
 
 var _ SchedulerMonitor = (*defaultSchedulerMonitor)(nil)
@@ -174,6 +201,26 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 	}
 }
 
+// WithMaxRetryHistory sets the maximum number of retry records to keep per job.
+// WithMaxRetryHistory 设置每个任务保留的重试记录的最大数量。
+//
+// Parameters:
+//
+//	maxRetryHistory - The maximum number of retry records / 最大重试记录数量
+//
+// Returns:
+//
+//	func(*defaultSchedulerMonitor) - The scheduler monitor option / 调度器监控选项
+func WithMaxRetryHistory(maxRetryHistory int) func(*defaultSchedulerMonitor) {
+	return func(s *defaultSchedulerMonitor) {
+		if maxRetryHistory <= 0 {
+			s.maxRetryHistory = defaultMaxRetryHistory
+			return
+		}
+		s.maxRetryHistory = maxRetryHistory
+	}
+}
+
 // UpdateJobEvents updates job events.
 // UpdateJobEvents 更新任务事件。
 //
@@ -184,6 +231,9 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 //	jobnewEvent - The new job event / 新的任务事件
 //	jobTags    - Variable number of job tags / 可变数量的任务标签
 func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Get the current event record
 	// 获取当前的事件记录
 	event, ok := s.jobRecord[jobID.String()]
@@ -224,6 +274,9 @@ func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName strin
 //
 //	[]*JobEvent - The list of job events / 任务事件列表
 func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if len(s.jobRecord) == 0 {
 		return nil
 	}
@@ -231,7 +284,64 @@ func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
 	if !ok {
 		return nil
 	}
-	return events.JobEvents
+	// Return a copy to avoid race conditions
+	// 返回副本以避免竞态条件
+	result := make([]*JobEvent, len(events.JobEvents))
+	copy(result, events.JobEvents)
+	return result
+}
+
+// GetRetryHistory gets the retry history for a job.
+// GetRetryHistory 获取任务的重试历史。
+//
+// Parameters:
+//
+//	jobID - The job ID / 任务 ID
+//
+// Returns:
+//
+//	[]*retry.RetryEvent - The list of retry events / 重试事件列表
+func (s *defaultSchedulerMonitor) GetRetryHistory(jobID string) []*retry.RetryEvent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	history, ok := s.retryHistory[jobID]
+	if !ok {
+		return nil
+	}
+	// Return a copy
+	// 返回副本
+	result := make([]*retry.RetryEvent, len(history))
+	copy(result, history)
+	return result
+}
+
+// RecordRetryEvent records a retry event.
+// RecordRetryEvent 记录重试事件。
+//
+// Parameters:
+//
+//	event - The retry event to record / 要记录的重试事件
+func (s *defaultSchedulerMonitor) RecordRetryEvent(event *retry.RetryEvent) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	jobID := event.OriginalEventID
+
+	if _, ok := s.retryHistory[jobID]; !ok {
+		s.retryHistory[jobID] = make([]*retry.RetryEvent, 0)
+	}
+
+	if len(s.retryHistory[jobID]) >= s.maxRetryHistory {
+		s.retryHistory[jobID] = s.retryHistory[jobID][1:]
+	}
+
+	s.retryHistory[jobID] = append(s.retryHistory[jobID], event)
+
+	slog.Info("chrono: retry event recorded",
+		"job_id", jobID,
+		"attempt", event.Attempt,
+		"error", event.ErrorMessage)
 }
 
 // MonitorJobSpec represents the specification of a monitored job.
@@ -312,6 +422,18 @@ type JobEvent struct {
 	// Err is the job error.
 	// Err 是任务错误。
 	Err error
+
+	// New retry-related fields
+	// 新增重试相关字段
+	// RetryCount is the number of retry attempts.
+	// RetryCount 重试次数。
+	RetryCount int `json:"retry_count,omitempty"`
+	// IsRetry indicates if this is a retry event.
+	// IsRetry 表示是否为重试事件。
+	IsRetry bool `json:"is_retry,omitempty"`
+	// OriginalEventID is the original event ID for retries.
+	// OriginalEventID 原始事件 ID（用于重试）。
+	OriginalEventID string `json:"original_event_id,omitempty"`
 }
 
 // MarshalJSON marshals the JobEvent to JSON.
@@ -323,11 +445,14 @@ type JobEvent struct {
 //	error    - Error if marshaling fails / 如果序列化失败则返回错误
 func (m JobEvent) MarshalJSON() ([]byte, error) {
 	type Alias struct {
-		EventID   string           `json:"event_id"`
-		StartTime string           `json:"start_time"`
-		EndTime   string           `json:"end_time"`
-		Status    gocron.JobStatus `json:"status"`
-		Err       string           `json:"error"`
+		EventID         string           `json:"event_id"`
+		StartTime       string           `json:"start_time"`
+		EndTime         string           `json:"end_time"`
+		Status          gocron.JobStatus `json:"status"`
+		Err             string           `json:"error"`
+		RetryCount      int              `json:"retry_count,omitempty"`
+		IsRetry         bool             `json:"is_retry,omitempty"`
+		OriginalEventID string           `json:"original_event_id,omitempty"`
 	}
 
 	var errStr string
@@ -336,11 +461,14 @@ func (m JobEvent) MarshalJSON() ([]byte, error) {
 	}
 
 	return json.Marshal(&Alias{
-		EventID:   m.EventID,
-		StartTime: m.StartTime.Format(time.DateTime),
-		EndTime:   m.EndTime.Format(time.DateTime),
-		Status:    m.Status,
-		Err:       errStr,
+		EventID:         m.EventID,
+		StartTime:       m.StartTime.Format(time.DateTime),
+		EndTime:         m.EndTime.Format(time.DateTime),
+		Status:          m.Status,
+		Err:             errStr,
+		RetryCount:      m.RetryCount,
+		IsRetry:         m.IsRetry,
+		OriginalEventID: m.OriginalEventID,
 	})
 }
 
@@ -426,11 +554,13 @@ func (m JobEvent) GetError() error {
 //	*defaultSchedulerMonitor - The new scheduler monitor / 新的调度器监控
 func newDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedulerMonitor {
 	defaultSchedulerMonitor := &defaultSchedulerMonitor{
-		counter:    make(map[string]int),
-		time:       make(map[string][]time.Duration),
-		jobChan:    make(chan JobWatchInterface, 100),
-		jobRecord:  make(map[string]MonitorJobSpec),
-		eventIDCli: defaultEventIDGenerator,
+		counter:         make(map[string]int),
+		time:            make(map[string][]time.Duration),
+		jobChan:         make(chan JobWatchInterface, 100),
+		jobRecord:       make(map[string]MonitorJobSpec),
+		eventIDCli:      defaultEventIDGenerator,
+		maxRetryHistory: defaultMaxRetryHistory,
+		retryHistory:    make(map[string][]*retry.RetryEvent),
 	}
 	for _, opt := range opts {
 		opt(defaultSchedulerMonitor)

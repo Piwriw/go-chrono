@@ -9,6 +9,8 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+
+	"github.com/piwriw/go-chrono/retry"
 )
 
 var defaultWatch = EmptyWatchFunc
@@ -85,6 +87,9 @@ type SchedulerOptions struct {
 	limit *LimitOption
 	// Prometheus option
 	prometheus *PrometheusOption
+	// Retry option
+	// 重试选项
+	retry *RetryOption
 }
 
 // Enable checks if a specific option is enabled.
@@ -110,6 +115,10 @@ func (s *Scheduler) Enable(option string) bool {
 	case PrometheusOptionName:
 		if s.schOptions.prometheus != nil {
 			return s.schOptions.prometheus.Enable()
+		}
+	case RetryOptionName:
+		if s.schOptions.retry != nil {
+			return s.schOptions.retry.Enable()
 		}
 	}
 	return false
@@ -185,6 +194,26 @@ func WithLimit(limit int) SchedulerOption {
 func WithPrometheus(address string) SchedulerOption {
 	return func(s *SchedulerOptions) {
 		s.prometheus = &PrometheusOption{enabled: true, address: address}
+	}
+}
+
+// WithRetry sets the retry configuration for all jobs.
+// WithRetry 为所有任务设置重试配置。
+//
+// Parameters:
+//
+//	config - The retry configuration / 重试配置
+//
+// Returns:
+//
+//	SchedulerOption - The scheduler option / 调度器选项
+func WithRetry(config *retry.RetryConfig) SchedulerOption {
+	return func(s *SchedulerOptions) {
+		retryOpt := &RetryOption{
+			enabled: config != nil && config.MaxRetries > 0,
+			config:  config,
+		}
+		s.retry = retryOpt
 	}
 }
 

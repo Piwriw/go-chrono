@@ -3,6 +3,8 @@ package chrono
 import (
 	"sync"
 
+	"github.com/piwriw/go-chrono/retry"
+
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
 )
@@ -134,6 +136,25 @@ type CronJobClientInterface interface {
 	// Returns:
 	//	CronJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) CronJobClientInterface
+
+	// WithRetry sets the retry configuration for the job.
+	// 设置任务的重试配置。
+	//
+	// Parameters:
+	//	maxRetries - Maximum number of retries / 最大重试次数
+	//	policy     - Retry policy / 重试策略
+	// Returns:
+	//	CronJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetry(maxRetries int, policy retry.RetryPolicy) CronJobClientInterface
+
+	// WithRetryConfig sets the complete retry configuration.
+	// 设置完整的重试配置。
+	//
+	// Parameters:
+	//	config - Retry configuration / 重试配置
+	// Returns:
+	//	CronJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetryConfig(config *retry.RetryConfig) CronJobClientInterface
 
 	// Add adds the configured cron job to the scheduler.
 	// 将配置的定时任务添加到调度器。
@@ -593,4 +614,56 @@ func (c *CronJobClient) Get() (gocron.Job, error) {
 		return c.scheduler.GetJobByName(c.job.Name)
 	}
 	return nil, ErrJobNotFound
+}
+
+// WithRetry sets the retry configuration for the job.
+// 设置任务的重试配置。
+//
+// Parameters:
+//
+//	maxRetries - Maximum number of retries / 最大重试次数
+//	policy     - Retry policy / 重试策略
+//
+// Returns:
+//
+//	CronJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (c *CronJobClient) WithRetry(maxRetries int, policy retry.RetryPolicy) CronJobClientInterface {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.job == nil {
+		return c
+	}
+	if c.job.jobOptions == nil {
+		c.job.jobOptions = newJobOptions()
+	}
+	c.job.jobOptions.retryConfig = &retry.RetryConfig{
+		MaxRetries: maxRetries,
+		Policy:     policy,
+	}
+	c.job.jobOptions.retryEnabled = true
+	return c
+}
+
+// WithRetryConfig sets the complete retry configuration.
+// 设置完整的重试配置。
+//
+// Parameters:
+//
+//	config - Retry configuration / 重试配置
+//
+// Returns:
+//
+//	CronJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (c *CronJobClient) WithRetryConfig(config *retry.RetryConfig) CronJobClientInterface {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.job == nil {
+		return c
+	}
+	if c.job.jobOptions == nil {
+		c.job.jobOptions = newJobOptions()
+	}
+	c.job.jobOptions.retryConfig = config
+	c.job.jobOptions.retryEnabled = true
+	return c
 }

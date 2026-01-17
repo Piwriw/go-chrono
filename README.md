@@ -1,39 +1,273 @@
-#  go-chrono
-## 支持功能
-### 支持的任务类型
-- Cron表达式（Cron Job）：任务可以使用 crontab 格式的时间表达式运行
-- IntervalJob：任务可以每隔 X 秒、分钟、小时、天、周、月运行
-- 每日（DailyJob）：任务可以每隔 X 天在特定的时间运行
-- 每周（WeeklyJob）：任务可以每隔 X 周在特定的星期几和时间运行
-- 每月（MonthlyJob）：任务可以每隔 X 月在特定的日期和时间运行
-- 一次性（OnceJob）：任务可以在特定的时间运行（可以是一次或多次）
+# go-chrono
 
-### 支持功能
-- [x] 允许设置调度器全局配置，优先使用Job自身配置
-  - [x] 超时时间
-  - [x] Watch监听模式
-  - [ ] 钩子函数
-  - [ ] 重试策略(是否至少间隔多大?，防止溢出风险)
-- [x] 允许自定义实现JobClient
-  - [ ] Example
-- [ ] 统一Time.Format格式
-- [x] 设置Schedule最大管控调用任务数量
-- [ ] 自定义Logger
-- [x] Job标签级别管控
-  - 缺少移除func
-- [x] 优雅终止关闭
-- [x] 监控模式
-  - [x]  Prometheus端点监控
-  - [x]  Listen Web监控
-  - [x]  可以查询最近X次的执行结果
-     - [ ]  支持查询指定时间范围的执行结果
-     - [ ]  支持查询指定标签的执行结果
-     - [ ]  支持查询指定任务的执行结果
-     - [ ]  支持查询指定任务的执行结果
-     - [x]  新增EventID支持
-        - 允许自定义实现Event ID生成器
-        - 默认使用JobID+JobName+时间戳
-        - 内置支持生成器：
-          1. UUID
-          2. JobID+JobName+时间戳
-## Example
+> 一个功能强大的 Go 任务调度库，基于 [go-co-op/gocron/v2](https://github.com/go-co-op/gocron) 构建，提供流畅的 API、监控、重试机制和灵活的任务生命周期管理。
+
+[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## 特性
+
+- 🕐 **多种任务类型** - 支持 Cron、定时、一次性、间隔等多种调度方式
+- 🔄 **重试机制** - 内置固定间隔、指数退避、抖动等重试策略
+- 📊 **监控面板** - 内置 Web 监控和 Prometheus 指标支持
+- 🎣 **钩子函数** - 支持任务生命周期的各个阶段回调
+- 🏷️ **标签管理** - 任务标签级别的管控和查询
+- 🔒 **分布式锁** - 支持分布式环境下的任务去重
+- 🎨 **流式 API** - Builder 模式提供的优雅链式调用
+
+## 安装
+
+```bash
+go get github.com/piwriw/go-chrono
+```
+
+## 快速开始
+
+```go
+package main
+
+import (
+    "github.com/piwriw/go-chrono"
+)
+
+func main() {
+    // 创建调度器
+    scheduler := chrono.NewScheduler()
+
+    // 创建一个每分钟执行的定时任务
+    chrono.NewCronJob(scheduler).
+        CronExpr("* * * * *").
+        Name("my-job").
+        Task(func() {
+            println("Hello, go-chrono!")
+        }).
+        Add()
+
+    // 启动调度器
+    scheduler.Start()
+
+    // 程序退出时关闭
+    defer scheduler.Stop()
+}
+```
+
+## 任务类型
+
+### Cron 任务
+
+使用 Cron 表达式定义执行时间：
+
+```go
+chrono.NewCronJob(scheduler).
+    CronExpr("0 */5 * * *").  // 每 5 分钟
+    Name("cron-job").
+    Task(myTask).
+    Add()
+```
+
+### 定时任务
+
+按固定间隔执行任务：
+
+```go
+chrono.NewIntervalJob(scheduler).
+    Interval(10 * time.Second).
+    Name("interval-job").
+    Task(myTask).
+    Add()
+```
+
+### 每日任务
+
+在每天的特定时间执行：
+
+```go
+chrono.NewDailyJob(scheduler).
+    AtTime(14, 30, 0).  // 每天 14:30:00
+    Name("daily-job").
+    Task(myTask).
+    Add()
+```
+
+### 每周任务
+
+在每周的特定日期和时间执行：
+
+```go
+chrono.NewWeeklyJob(scheduler).
+    AtTime([]time.Weekday{time.Monday, time.Friday}, 10, 0, 0).
+    Name("weekly-job").
+    Task(myTask).
+    Add()
+```
+
+### 每月任务
+
+在每月的特定日期和时间执行：
+
+```go
+chrono.NewMonthlyJob(scheduler).
+    AtTime([]int{1, 15}, 9, 0, 0).  // 每月 1 号和 15 号 9:00
+    Name("monthly-job").
+    Task(myTask).
+    Add()
+```
+
+### 一次性任务
+
+在指定时间执行一次：
+
+```go
+chrono.NewOnceJob(scheduler).
+    At(time.Now().Add(1 * time.Hour)).
+    Name("once-job").
+    Task(myTask).
+    Add()
+```
+
+## 重试机制
+
+go-chrono 提供灵活的任务重试机制，支持多种重试策略。
+
+### 内置策略
+
+| 策略 | 说明 |
+|------|------|
+| `FixedIntervalPolicy` | 固定时间间隔重试 |
+| `ExponentialBackoffPolicy` | 指数退避（2^n × base，带上限） |
+| `JitterPolicy` | 在基础策略上添加随机抖动 |
+
+### 使用示例
+
+```go
+import "github.com/piwriw/go-chrono/retry"
+
+// 固定间隔重试
+chrono.NewCronJob(scheduler).
+    CronExpr("* * * * *").
+    Name("fixed-retry-job").
+    Task(myTask).
+    WithRetry(3, retry.NewFixedIntervalPolicy(5*time.Second)).
+    Add()
+
+// 指数退避重试
+chrono.NewCronJob(scheduler).
+    CronExpr("* * * * *").
+    Name("exponential-retry-job").
+    Task(myTask).
+    WithRetry(5, retry.NewExponentialBackoffPolicy(1*time.Second, 60*time.Second)).
+    Add()
+
+// 带抖动的重试（避免雷击效应）
+basePolicy := retry.NewFixedIntervalPolicy(10 * time.Second)
+jitterPolicy := retry.NewJitterPolicy(basePolicy, 0.2)  // 20% 抖动
+chrono.NewCronJob(scheduler).
+    CronExpr("* * * * *").
+    Name("jitter-retry-job").
+    Task(myTask).
+    WithRetryConfig(&retry.RetryConfig{
+        MaxRetries: 3,
+        Policy:     jitterPolicy,
+    }).
+    Add()
+```
+
+### 查询重试历史
+
+```bash
+curl http://localhost:8080/jobs/{job_id}/retries
+```
+
+## 调度器选项
+
+### 启用别名模式
+
+```go
+scheduler := chrono.NewScheduler(
+    chrono.WithAliasMode(),
+)
+```
+
+### 启用 Web 监控
+
+```go
+scheduler := chrono.NewScheduler(
+    chrono.WithWebMonitor(":8080"),
+)
+// 访问 http://localhost:8080 查看监控面板
+```
+
+### 启用 Prometheus 指标
+
+```go
+scheduler := chrono.NewScheduler(
+    chrono.WithPrometheus(":9090"),
+)
+```
+
+### 设置并发限制
+
+```go
+scheduler := chrono.NewScheduler(
+    chrono.WithLimit(100),  // 最多 100 个并发任务
+)
+```
+
+## 钩子函数
+
+```go
+chrono.NewCronJob(scheduler).
+    CronExpr("* * * * *").
+    Name("job-with-hooks").
+    Task(myTask).
+    BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
+        fmt.Printf("任务 %s 即将执行\n", jobName)
+    }).
+    AfterJobRuns(func(jobID uuid.UUID, jobName string) {
+        fmt.Printf("任务 %s 执行成功\n", jobName)
+    }).
+    AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
+        fmt.Printf("任务 %s 执行失败: %v\n", jobName, err)
+    }).
+    Add()
+```
+
+## 任务管理
+
+### 按别名移除任务
+
+```go
+scheduler.RemoveJobByAlias("my-job-alias")
+```
+
+### 按名称移除任务
+
+```go
+scheduler.RemoveJobByName("my-job")
+```
+
+### 按移除任务
+
+```go
+scheduler.RemoveJob(jobID)
+```
+
+### 获取所有任务
+
+```go
+jobs, err := scheduler.GetJobs()
+```
+
+## Web 监控端点
+
+启用 Web 监控后，可使用以下端点：
+
+| 端点 | 说明 |
+|------|------|
+| `GET /healthz` | 健康检查 |
+| `GET /jobs` | 获取所有任务列表 |
+| `GET /jobs/{job_id}/retries` | 获取任务的重试历史 |
+
+## License
+
+MIT License

@@ -1,0 +1,117 @@
+name: Approve Comment Auto Merge
+# 通过评论 /approve 自动合并 PR
+# Auto merge PR when reviewer comments /approve
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  approve-and-merge:
+    # 只处理 PR 的评论
+    if: github.event.issue.pull_request
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check comment command
+        id: check
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = context.payload.comment.body.trim();
+            const isApproveCommand = comment === '/approve' || comment.toLowerCase() === '/approve';
+
+            if (!isApproveCommand) {
+              console.log('Not an approve command, skipping...');
+              core.setOutput('should_merge', 'false');
+              return;
+            }
+
+            // 检查用户是否有权限
+            const commenter = context.payload.comment.user.login;
+            const repo = context.repo;
+            const issueNumber = context.issue.number;
+
+            // 获取 PR 信息
+            const pr = await github.rest.pulls.get({
+              owner: repo.owner,
+              repo: repo.repo,
+              pull_number: issueNumber
+            });
+
+            // 获取仓库协作者列表
+            try {
+              const collaborators = await github.rest.repos.listCollaborators({
+                owner: repo.owner,
+                repo: repo.repo
+              });
+
+              const isCollaborator = collaborators.data.some(u => u.login === commenter);
+
+              if (!isCollaborator) {
+                console.log(`User ${commenter} is not a collaborator`);
+                core.setOutput('should_merge', 'false');
+                core.setFailed(`Only collaborators can use /approve command`);
+                return;
+              }
+
+              // 检查 PR 是否可以合并
+              if (pr.data.mergeable !== true) {
+                console.log('PR has merge conflicts');
+                core.setOutput('should_merge', 'false');
+                core.setFailed('PR has conflicts that must be resolved');
+                return;
+              }
+
+              // 检查 CI 状态
+              const status = await github.rest.repos.getCombinedStatusForRef({
+                owner: repo.owner,
+                repo: repo.repo,
+                ref: pr.data.head.sha
+              });
+
+              if (status.data.state !== 'success') {
+                console.log('CI checks not passed');
+                core.setOutput('should_merge', 'false');
+                core.setFailed('CI checks must pass before merging');
+                return;
+              }
+
+              core.setOutput('should_merge', 'true');
+              core.setOutput('pr_number', issueNumber);
+
+            } catch (error) {
+              console.error('Error checking permissions:', error);
+              core.setFailed(error.message);
+            }
+
+      - name: Merge PR
+        if: steps.check.outputs.should_merge == 'true'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = `${{ steps.check.outputs.pr_number }}`;
+            const repo = context.repo;
+
+            // 添加批准评论反应
+            await github.rest.reactions.createForIssueComment({
+              owner: repo.owner,
+              repo: repo.repo,
+              comment_id: context.payload.comment.id,
+              content: 'rocket'
+            });
+
+            // 执行合并
+            await github.rest.pulls.merge({
+              owner: repo.owner,
+              repo: repo.repo,
+              pull_number: prNumber,
+              merge_method: 'squash',
+              commit_title: `Merge PR #${prNumber}`,
+              commit_message: 'Auto-merged via /approve command'
+            });
+
+            console.log(`Successfully merged PR #${prNumber}`);

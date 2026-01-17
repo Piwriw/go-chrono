@@ -41,6 +41,9 @@ type IntervalJob struct {
 	// WatchFunc is the function to watch job events.
 	// WatchFunc 是监听任务事件的函数。
 	WatchFunc func(event JobWatchInterface)
+	// jobOptions holds job-level options.
+	// jobOptions 保存任务级别的选项。
+	jobOptions *jobOptions
 	// err is the error state for the job.
 	// err 是任务的错误状态。
 	err error

@@ -5,6 +5,7 @@ import (
 
 	"github.com/go-co-op/gocron/v2"
 	"github.com/google/uuid"
+	"github.com/piwriw/go-chrono/retry"
 )
 
 // WeeklyJobClientInterface defines interface for configuring and managing weekly jobs.
@@ -137,6 +138,25 @@ type WeeklyJobClientInterface interface {
 	// Returns:
 	//	WeeklyJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
 	AfterLockError(eventListenerFunc func(jobID uuid.UUID, jobName string, err error)) WeeklyJobClientInterface
+
+	// WithRetry sets the retry configuration for the job.
+	// 设置任务的重试配置。
+	//
+	// Parameters:
+	//	maxRetries - Maximum number of retries / 最大重试次数
+	//	policy     - Retry policy / 重试策略
+	// Returns:
+	//	WeeklyJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetry(maxRetries int, policy retry.RetryPolicy) WeeklyJobClientInterface
+
+	// WithRetryConfig sets the complete retry configuration.
+	// 设置完整的重试配置。
+	//
+	// Parameters:
+	//	config - Retry configuration / 重试配置
+	// Returns:
+	//	WeeklyJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+	WithRetryConfig(config *retry.RetryConfig) WeeklyJobClientInterface
 
 	// Add adds the configured weekly job to the scheduler.
 	// 将配置的周任务添加到调度器。
@@ -510,4 +530,52 @@ func (w *WeeklyJobClient) Get() (gocron.Job, error) {
 		return w.scheduler.GetJobByName(w.job.Name)
 	}
 	return nil, ErrJobNotFound
+}
+
+// WithRetry sets the retry configuration for the job.
+// 设置任务的重试配置。
+//
+// Parameters:
+//
+//	maxRetries - Maximum number of retries / 最大重试次数
+//	policy     - Retry policy / 重试策略
+//
+// Returns:
+//
+//	WeeklyJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (w *WeeklyJobClient) WithRetry(maxRetries int, policy retry.RetryPolicy) WeeklyJobClientInterface {
+	if w.job == nil {
+		return w
+	}
+	if w.job.jobOptions == nil {
+		w.job.jobOptions = newJobOptions()
+	}
+	w.job.jobOptions.retryConfig = &retry.RetryConfig{
+		MaxRetries: maxRetries,
+		Policy:     policy,
+	}
+	w.job.jobOptions.retryEnabled = true
+	return w
+}
+
+// WithRetryConfig sets the complete retry configuration.
+// 设置完整的重试配置。
+//
+// Parameters:
+//
+//	config - Retry configuration / 重试配置
+//
+// Returns:
+//
+//	WeeklyJobClientInterface - The client interface for method chaining / 客户端接口，支持链式调用
+func (w *WeeklyJobClient) WithRetryConfig(config *retry.RetryConfig) WeeklyJobClientInterface {
+	if w.job == nil {
+		return w
+	}
+	if w.job.jobOptions == nil {
+		w.job.jobOptions = newJobOptions()
+	}
+	w.job.jobOptions.retryConfig = config
+	w.job.jobOptions.retryEnabled = true
+	return w
 }
