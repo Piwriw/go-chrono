@@ -8,44 +8,48 @@ import (
 	"time"
 )
 
+// RetryEvent contains detailed retry information.
 // RetryEvent 重试事件详情
-// RetryEvent contains detailed retry information
 type RetryEvent struct {
+	// EventID is the event ID.
 	// EventID 事件 ID
-	// EventID is the event ID
 	EventID string `json:"event_id"`
 
+	// OriginalEventID is the original task event ID.
 	// OriginalEventID 原始任务事件 ID
-	// OriginalEventID is the original task event ID
 	OriginalEventID string `json:"original_event_id"`
 
+	// Attempt is the retry attempt number (starts from 0).
 	// Attempt 第几次尝试（从 0 开始）
-	// Attempt is the retry attempt number (starts from 0)
 	Attempt int `json:"attempt"`
 
+	// StartTime is the start time.
 	// StartTime 开始时间
-	// StartTime is the start time
 	StartTime time.Time `json:"start_time"`
 
+	// EndTime is the end time.
 	// EndTime 结束时间
-	// EndTime is the end time
 	EndTime time.Time `json:"end_time"`
 
+	// Err is the error.
 	// Err 错误
-	// Err is the error
 	Err error `json:"-"`
 
+	// ErrorMessage is the error message for JSON serialization.
 	// ErrorMessage 错误信息（用于 JSON 序列化）
-	// ErrorMessage is the error message for JSON serialization
 	ErrorMessage string `json:"error,omitempty"`
 
+	// NextRetryIn is the duration until next retry.
 	// NextRetryIn 下次重试间隔
-	// NextRetryIn is the duration until next retry
 	NextRetryIn time.Duration `json:"next_retry_in"`
 }
 
+// MarshalJSON serializes to JSON.
 // MarshalJSON 序列化为 JSON
-// MarshalJSON serializes to JSON
+//
+// Returns:
+//	[]byte - JSON bytes / JSON 字节数组
+//	error - Error if serialization fails / 序列化失败时的错误
 func (r *RetryEvent) MarshalJSON() ([]byte, error) {
 	type Alias RetryEvent
 	errMsg := ""
@@ -61,14 +65,29 @@ func (r *RetryEvent) MarshalJSON() ([]byte, error) {
 	})
 }
 
+// GetDuration returns the execution duration.
 // GetDuration 获取执行耗时
-// GetDuration returns the execution duration
+//
+// Returns:
+//	time.Duration - Execution duration / 执行耗时
 func (r *RetryEvent) GetDuration() time.Duration {
 	return r.EndTime.Sub(r.StartTime)
 }
 
+// NewRetryEvent creates a new retry event.
 // NewRetryEvent 创建新的重试事件
-// NewRetryEvent creates a new retry event
+//
+// Parameters:
+//	eventID - Event ID / 事件 ID
+//	originalEventID - Original task event ID / 原始任务事件 ID
+//	attempt - Retry attempt number (starts from 0) / 重试次数（从 0 开始）
+//	startTime - Start time / 开始时间
+//	endTime - End time / 结束时间
+//	err - Error that occurred / 发生的错误
+//	nextRetryIn - Duration until next retry / 下次重试间隔
+//
+// Returns:
+//	*RetryEvent - New retry event / 新的重试事件
 func NewRetryEvent(eventID, originalEventID string, attempt int, startTime, endTime time.Time, err error, nextRetryIn time.Duration) *RetryEvent {
 	errMsg := ""
 	if err != nil && !errors.Is(err, nil) {
