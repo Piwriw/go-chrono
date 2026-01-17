@@ -12,8 +12,8 @@
 - [x] 允许设置调度器全局配置，优先使用Job自身配置
   - [x] 超时时间
   - [x] Watch监听模式
-  - [ ] 钩子函数
-  - [ ] 重试策略(是否至少间隔多大?，防止溢出风险)
+  - [x] 钩子函数
+  - [x] 重试策略
 - [x] 允许自定义实现JobClient
   - [ ] Example
 - [ ] 统一Time.Format格式
@@ -36,4 +36,84 @@
         - 内置支持生成器：
           1. UUID
           2. JobID+JobName+时间戳
+
+## 重试机制 (Retry Mechanism)
+
+go-chrono 提供了灵活的任务重试机制，支持多种重试策略。
+
+### 内置重试策略
+
+1. **固定间隔策略 (FixedIntervalPolicy)**: 每次重试使用固定的时间间隔
+2. **指数退避策略 (ExponentialBackoffPolicy)**: 每次重试间隔指数增长（2^n * base）
+3. **抖动策略 (JitterPolicy)**: 在基础策略上添加随机抖动，避免雷击效应
+
+### 使用示例
+
+```go
+package main
+
+import (
+    "github.com/piwriw/go-chrono"
+    "github.com/piwriw/go-chrono/retry"
+    "time"
+)
+
+func main() {
+    scheduler := chrono.NewScheduler()
+
+    // 使用固定间隔重试策略
+    chrono.NewCronJob(scheduler).
+        CronExpr("* * * * *").
+        Name("fixed-retry-job").
+        Task(myTask).
+        WithRetry(3, retry.NewFixedIntervalPolicy(5*time.Second)).
+        Add()
+
+    // 使用指数退避重试策略
+    chrono.NewCronJob(scheduler).
+        CronExpr("* * * * *").
+        Name("exponential-retry-job").
+        Task(myTask).
+        WithRetry(5, retry.NewExponentialBackoffPolicy(1*time.Second, 60*time.Second)).
+        Add()
+
+    // 使用抖动策略
+    basePolicy := retry.NewFixedIntervalPolicy(10 * time.Second)
+    jitterPolicy := retry.NewJitterPolicy(basePolicy, 0.2) // 20% 抖动
+    chrono.NewCronJob(scheduler).
+        CronExpr("* * * * *").
+        Name("jitter-retry-job").
+        Task(myTask).
+        WithRetryConfig(&retry.RetryConfig{
+            MaxRetries: 3,
+            Policy:     jitterPolicy,
+        }).
+        Add()
+
+    scheduler.Start()
+}
+
+func myTask() error {
+    // 你的任务逻辑
+    return nil
+}
+```
+
+### 查询重试历史
+
+通过 Web 监控端点查询任务的重试历史：
+
+```bash
+# 获取指定任务的重试历史
+curl http://localhost:8080/jobs/{job_id}/retries
+```
+
+### 重试配置选项
+
+- **MaxRetries**: 最大重试次数
+- **Policy**: 重试策略（必须实现 RetryPolicy 接口）
+- **IsRetryable** (可选): 自定义错误重试判断函数
+- **OnRetry** (可选): 每次重试前的回调函数
+- **OnFinalFailure** (可选): 最终失败后的回调函数
+
 ## Example
