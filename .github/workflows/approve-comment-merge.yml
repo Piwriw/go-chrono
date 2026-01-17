@@ -50,19 +50,11 @@ jobs:
               });
 
               const isCollaborator = collaborators.data.some(u => u.login === commenter);
-              const isAuthor = pr.data.user.login === commenter;
 
               if (!isCollaborator) {
                 console.log(`User ${commenter} is not a collaborator`);
                 core.setOutput('should_merge', 'false');
                 core.setFailed(`Only collaborators can use /approve command`);
-                return;
-              }
-
-              if (isAuthor) {
-                console.log('Author cannot approve their own PR');
-                core.setOutput('should_merge', 'false');
-                core.setFailed('Author cannot approve their own PR');
                 return;
               }
 
