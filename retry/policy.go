@@ -43,3 +43,38 @@ func (p *FixedIntervalPolicy) NextRetry(attempt int, lastErr error) time.Duratio
 func (p *FixedIntervalPolicy) ShouldRetry(attempt int, err error) bool {
 	return true
 }
+
+// ExponentialBackoffPolicy retries with exponential backoff
+// ExponentialBackoffPolicy 指数退避重试策略
+type ExponentialBackoffPolicy struct {
+	baseInterval time.Duration
+	maxInterval  time.Duration
+	multiplier   float64
+}
+
+// NewExponentialBackoffPolicy creates an exponential backoff retry policy
+// NewExponentialBackoffPolicy 创建指数退避策略
+func NewExponentialBackoffPolicy(base, max time.Duration) *ExponentialBackoffPolicy {
+	return &ExponentialBackoffPolicy{
+		baseInterval: base,
+		maxInterval:  max,
+		multiplier:   2.0,
+	}
+}
+
+// NextRetry calculates exponentially increasing interval
+// NextRetry 计算指数增长的间隔时间
+func (p *ExponentialBackoffPolicy) NextRetry(attempt int, lastErr error) time.Duration {
+	multiplier := 1 << uint(attempt)
+	interval := time.Duration(float64(p.baseInterval) * float64(multiplier))
+	if interval > p.maxInterval {
+		return p.maxInterval
+	}
+	return interval
+}
+
+// ShouldRetry always returns true
+// ShouldRetry 始终返回 true
+func (p *ExponentialBackoffPolicy) ShouldRetry(attempt int, err error) bool {
+	return true
+}
