@@ -205,6 +205,9 @@ func WithEventIDGenerator(eventIDGenerator EventIDGenerator) func(*defaultSchedu
 //	jobnewEvent - The new job event / 新的任务事件
 //	jobTags    - Variable number of job tags / 可变数量的任务标签
 func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent *JobEvent, jobTags ...string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	// Get the current event record
 	// 获取当前的事件记录
 	event, ok := s.jobRecord[jobID.String()]
@@ -245,6 +248,9 @@ func (s *defaultSchedulerMonitor) UpdateJobEvents(jobID uuid.UUID, jobName strin
 //
 //	[]*JobEvent - The list of job events / 任务事件列表
 func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
 	if len(s.jobRecord) == 0 {
 		return nil
 	}
@@ -252,7 +258,11 @@ func (s *defaultSchedulerMonitor) GetJobEvents(jobID string) []*JobEvent {
 	if !ok {
 		return nil
 	}
-	return events.JobEvents
+	// Return a copy to avoid race conditions
+	// 返回副本以避免竞态条件
+	result := make([]*JobEvent, len(events.JobEvents))
+	copy(result, events.JobEvents)
+	return result
 }
 
 // GetRetryHistory gets the retry history for a job.
@@ -305,7 +315,7 @@ func (s *defaultSchedulerMonitor) RecordRetryEvent(event *retry.RetryEvent) {
 
 	s.retryHistory[jobID] = append(s.retryHistory[jobID], event)
 
-	slog.Debug("chrono: retry event recorded",
+	slog.Info("chrono: retry event recorded",
 		"job_id", jobID,
 		"attempt", event.Attempt,
 		"error", event.ErrorMessage)
