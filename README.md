@@ -4,6 +4,27 @@
 
 [![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)](https://github.com/piwriw/go-chrono/tree/v2.0.0)
+
+> **⚠️ 注意：** 当前文档为 v2.0.0 版本。如果您使用 v1.0.0，请切换到 [main 分支](https://github.com/piwriw/go-chrono/tree/main)。
+
+## 版本与分支
+
+| 分支 | 版本 | 说明 |
+|------|------|------|
+| **[v2.0.0](https://github.com/piwriw/go-chrono/tree/v2.0.0)** | `v2.0.0` | 🔄 当前开发分支 - 包含包结构重构和重试机制 |
+| **[main](https://github.com/piwriw/go-chrono/tree/main)** | `v1.0.0` | ✅ 稳定版本 - 生产环境推荐 |
+
+**版本升级说明 (v1.0.0 → v2.0.0):**
+
+v2.0.0 是一个重大版本升级，包含不兼容的包结构重构。主要变更：
+- 📦 包结构重组：`pkg.JobType` → `jobs.JobType`
+- 🔄 新增重试机制和重试历史查询
+- 🏗️ 修复循环导入问题，建立清晰的依赖层次
+
+**查看 [CHANGELOG.md](CHANGELOG.md) 了解详细的变更内容和迁移指南。**
+
+---
 
 ## 特性
 
@@ -37,7 +58,7 @@ func main() {
     // 创建一个每分钟执行的定时任务
     chrono.NewCronJob(scheduler).
         CronExpr("* * * * *").
-        Name("my-job").
+        Name("my-jobs").
         Task(func() {
             println("Hello, go-chrono!")
         }).
@@ -60,7 +81,7 @@ func main() {
 ```go
 chrono.NewCronJob(scheduler).
     CronExpr("0 */5 * * *").  // 每 5 分钟
-    Name("cron-job").
+    Name("cron-jobs").
     Task(myTask).
     Add()
 ```
@@ -72,7 +93,7 @@ chrono.NewCronJob(scheduler).
 ```go
 chrono.NewIntervalJob(scheduler).
     Interval(10 * time.Second).
-    Name("interval-job").
+    Name("interval-jobs").
     Task(myTask).
     Add()
 ```
@@ -84,7 +105,7 @@ chrono.NewIntervalJob(scheduler).
 ```go
 chrono.NewDailyJob(scheduler).
     AtTime(14, 30, 0).  // 每天 14:30:00
-    Name("daily-job").
+    Name("daily-jobs").
     Task(myTask).
     Add()
 ```
@@ -96,7 +117,7 @@ chrono.NewDailyJob(scheduler).
 ```go
 chrono.NewWeeklyJob(scheduler).
     AtTime([]time.Weekday{time.Monday, time.Friday}, 10, 0, 0).
-    Name("weekly-job").
+    Name("weekly-jobs").
     Task(myTask).
     Add()
 ```
@@ -108,7 +129,7 @@ chrono.NewWeeklyJob(scheduler).
 ```go
 chrono.NewMonthlyJob(scheduler).
     AtTime([]int{1, 15}, 9, 0, 0).  // 每月 1 号和 15 号 9:00
-    Name("monthly-job").
+    Name("monthly-jobs").
     Task(myTask).
     Add()
 ```
@@ -120,7 +141,7 @@ chrono.NewMonthlyJob(scheduler).
 ```go
 chrono.NewOnceJob(scheduler).
     At(time.Now().Add(1 * time.Hour)).
-    Name("once-job").
+    Name("once-jobs").
     Task(myTask).
     Add()
 ```
@@ -145,7 +166,7 @@ import "github.com/piwriw/go-chrono/retry"
 // 固定间隔重试
 chrono.NewCronJob(scheduler).
     CronExpr("* * * * *").
-    Name("fixed-retry-job").
+    Name("fixed-retry-jobs").
     Task(myTask).
     WithRetry(3, retry.NewFixedIntervalPolicy(5*time.Second)).
     Add()
@@ -153,7 +174,7 @@ chrono.NewCronJob(scheduler).
 // 指数退避重试
 chrono.NewCronJob(scheduler).
     CronExpr("* * * * *").
-    Name("exponential-retry-job").
+    Name("exponential-retry-jobs").
     Task(myTask).
     WithRetry(5, retry.NewExponentialBackoffPolicy(1*time.Second, 60*time.Second)).
     Add()
@@ -163,7 +184,7 @@ basePolicy := retry.NewFixedIntervalPolicy(10 * time.Second)
 jitterPolicy := retry.NewJitterPolicy(basePolicy, 0.2)  // 20% 抖动
 chrono.NewCronJob(scheduler).
     CronExpr("* * * * *").
-    Name("jitter-retry-job").
+    Name("jitter-retry-jobs").
     Task(myTask).
     WithRetryConfig(&retry.RetryConfig{
         MaxRetries: 3,
@@ -218,7 +239,7 @@ scheduler := chrono.NewScheduler(
 ```go
 chrono.NewCronJob(scheduler).
     CronExpr("* * * * *").
-    Name("job-with-hooks").
+    Name("jobs-with-hooks").
     Task(myTask).
     BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
         fmt.Printf("任务 %s 即将执行\n", jobName)
@@ -237,13 +258,13 @@ chrono.NewCronJob(scheduler).
 ### 按别名移除任务
 
 ```go
-scheduler.RemoveJobByAlias("my-job-alias")
+scheduler.RemoveJobByAlias("my-jobs-alias")
 ```
 
 ### 按名称移除任务
 
 ```go
-scheduler.RemoveJobByName("my-job")
+scheduler.RemoveJobByName("my-jobs")
 ```
 
 ### 按移除任务

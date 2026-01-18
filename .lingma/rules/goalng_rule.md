@@ -184,7 +184,7 @@ trigger: always_on
   ```go
   func Worker(id int, jobs <-chan int, results chan<- int) {
       for j := range jobs {
-          fmt.Printf("Worker %d processing job %d\n", id, j)
+          fmt.Printf("Worker %d processing jobs %d\n", id, j)
           results <- j * 2
       }
   }
@@ -232,14 +232,14 @@ trigger: always_on
 5. 内部的业务代码需要增加注释，特别是关键逻辑和算法部分，保持代码的可读性和可维护性
 #### 示例
 ```go
-// GetJobByIDOrAlias retrieves a job by identifier, trying ID lookup first, then alias lookup.
+// GetJobByIDOrAlias retrieves a jobs by identifier, trying ID lookup first, then alias lookup.
 // 通过标识符获取任务，优先尝试ID查找，其次尝试别名查找。
 //
 // Parameters:
-//	identifier - The job ID or alias to look up / 要查找的任务ID或别名
+//	identifier - The jobs ID or alias to look up / 要查找的任务ID或别名
 // Returns:
-//	gocron.Job - The found job, or nil if not found / 找到的任务，未找到时为nil
-//	error      - Error if job not found / 如果未找到任务的错误
+//	gocron.Job - The found jobs, or nil if not found / 找到的任务，未找到时为nil
+//	error      - Error if jobs not found / 如果未找到任务的错误
 func (s *Scheduler) GetJobByIDOrAlias(identifier string) (gocron.Job, error) {
     // Try ID lookup first
     // 优先尝试ID查找
@@ -254,7 +254,7 @@ func (s *Scheduler) GetJobByIDOrAlias(identifier string) (gocron.Job, error) {
             return s.GetJobByAlias(jobID)
         }
     }
-    return nil, fmt.Errorf("chrono:job with identifier %s not found", identifier)
+    return nil, fmt.Errorf("chrono:jobs with identifier %s not found", identifier)
 }
 
 ```
