@@ -2,9 +2,10 @@ package monitor
 
 import (
 	"errors"
-	errors2 "github.com/piwriw/go-chrono/common"
 	"testing"
 	"time"
+
+	errors2 "github.com/piwriw/go-chrono/common"
 
 	"github.com/google/uuid"
 	"github.com/piwriw/go-chrono/jobs"

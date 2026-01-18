@@ -2,8 +2,9 @@ package scheduler
 
 import (
 	"errors"
-	errors2 "github.com/piwriw/go-chrono/common"
 	"testing"
+
+	errors2 "github.com/piwriw/go-chrono/common"
 )
 
 // TestErrorDefinitions tests that all error variables are properly defined.

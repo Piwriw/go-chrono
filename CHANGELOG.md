@@ -5,6 +5,25 @@ All notable changes to go-chrono will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-01-18
+
+### Added
+
+- **Retry History Configuration** - Make retry history storage size configurable
+- **Integration Tests** - Comprehensive test coverage for retry mechanism scenarios
+- **Web API Endpoint** - `GET /jobs/{job_id}/retries` for querying retry history
+
+### Changed
+
+- **Code Formatting** - Fixed formatting issues across the codebase
+- **Documentation** - Improved README structure and clarity
+- **Comments** - Enhanced bilingual documentation for retry-related features
+
+### Fixed
+
+- **Thread Safety** - Added mutex protection to monitor methods
+- **Comment Format** - Corrected bilingual comment formatting in retry_event.go
+
 ## [2.0.0] - 2025-01-18
 
 > **⚠️ BREAKING CHANGES** - Major version upgrade with significant package restructuring.

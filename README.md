@@ -2,7 +2,7 @@
 
 > 一个功能强大的 Go 任务调度库，基于 [go-co-op/gocron/v2](https://github.com/go-co-op/gocron) 构建，提供流畅的 API、监控、重试机制和灵活的任务生命周期管理。
 
-[![Go Version](https://img.shields.io/badge/Go-1.21+-00ADD8?style=flat&logo=go)](https://golang.org)
+[![Go Version](https://img.shields.io/badge/Go-1.23+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-2.0.0-orange.svg)](https://github.com/piwriw/go-chrono/tree/v2.0.0)
 
@@ -48,27 +48,41 @@ go get github.com/piwriw/go-chrono
 package main
 
 import (
-    "github.com/piwriw/go-chrono"
+    "context"
+    "github.com/piwriw/go-chrono/jobs"
+    "github.com/piwriw/go-chrono/scheduler"
 )
 
 func main() {
+    ctx := context.Background()
+
     // 创建调度器
-    scheduler := chrono.NewScheduler()
+    sched, err := scheduler.NewScheduler(ctx, nil)
+    if err != nil {
+        panic(err)
+    }
 
     // 创建一个每分钟执行的定时任务
-    chrono.NewCronJob(scheduler).
-        CronExpr("* * * * *").
-        Name("my-jobs").
+    cronJob := jobs.NewCronJob("* * * * *").
+        Name("my-job").
         Task(func() {
             println("Hello, go-chrono!")
-        }).
-        Add()
+        })
+
+    // 添加任务到调度器
+    _, err = sched.AddCronJob(cronJob)
+    if err != nil {
+        panic(err)
+    }
 
     // 启动调度器
-    scheduler.Start()
+    sched.Start()
 
     // 程序退出时关闭
-    defer scheduler.Stop()
+    defer sched.Shutdown()
+
+    // 保持程序运行
+    select {}
 }
 ```
 
@@ -79,11 +93,13 @@ func main() {
 使用 Cron 表达式定义执行时间：
 
 ```go
-chrono.NewCronJob(scheduler).
-    CronExpr("0 */5 * * *").  // 每 5 分钟
-    Name("cron-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+cronJob := jobs.NewCronJob("0 */5 * * *").  // 每 5 分钟
+    Name("cron-job").
+    Task(myTask)
+
+_, err := sched.AddCronJob(cronJob)
 ```
 
 ### 定时任务
@@ -91,11 +107,13 @@ chrono.NewCronJob(scheduler).
 按固定间隔执行任务：
 
 ```go
-chrono.NewIntervalJob(scheduler).
-    Interval(10 * time.Second).
-    Name("interval-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+intervalJob := jobs.NewIntervalJob(10 * time.Second).
+    Name("interval-job").
+    Task(myTask)
+
+_, err := sched.AddIntervalJob(intervalJob)
 ```
 
 ### 每日任务
@@ -103,11 +121,13 @@ chrono.NewIntervalJob(scheduler).
 在每天的特定时间执行：
 
 ```go
-chrono.NewDailyJob(scheduler).
-    AtTime(14, 30, 0).  // 每天 14:30:00
-    Name("daily-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+dailyJob := jobs.NewDailyJobAtTime(14, 30, 0).  // 每天 14:30:00
+    Name("daily-job").
+    Task(myTask)
+
+_, err := sched.AddDailyJob(dailyJob)
 ```
 
 ### 每周任务
@@ -115,11 +135,15 @@ chrono.NewDailyJob(scheduler).
 在每周的特定日期和时间执行：
 
 ```go
-chrono.NewWeeklyJob(scheduler).
-    AtTime([]time.Weekday{time.Monday, time.Friday}, 10, 0, 0).
-    Name("weekly-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+weeklyJob := jobs.NewWeeklyJobAtTime(
+    []time.Weekday{time.Monday, time.Friday},
+    10, 0, 0,
+).Name("weekly-job").
+    Task(myTask)
+
+_, err := sched.AddWeeklyJob(weeklyJob)
 ```
 
 ### 每月任务
@@ -127,11 +151,13 @@ chrono.NewWeeklyJob(scheduler).
 在每月的特定日期和时间执行：
 
 ```go
-chrono.NewMonthlyJob(scheduler).
-    AtTime([]int{1, 15}, 9, 0, 0).  // 每月 1 号和 15 号 9:00
-    Name("monthly-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+monthJob := jobs.NewMonthJobAtTime([]int{1, 15}, 9, 0, 0).  // 每月 1 号和 15 号 9:00
+    Name("monthly-job").
+    Task(myTask)
+
+_, err := sched.AddMonthJob(monthJob)
 ```
 
 ### 一次性任务
@@ -139,11 +165,13 @@ chrono.NewMonthlyJob(scheduler).
 在指定时间执行一次：
 
 ```go
-chrono.NewOnceJob(scheduler).
-    At(time.Now().Add(1 * time.Hour)).
-    Name("once-jobs").
-    Task(myTask).
-    Add()
+import "github.com/piwriw/go-chrono/jobs"
+
+onceJob := jobs.NewOnceJob(time.Now().Add(1 * time.Hour)).
+    Name("once-job").
+    Task(myTask)
+
+_, err := sched.AddOnceJob(onceJob)
 ```
 
 ## 重试机制
@@ -161,36 +189,33 @@ go-chrono 提供灵活的任务重试机制，支持多种重试策略。
 ### 使用示例
 
 ```go
-import "github.com/piwriw/go-chrono/retry"
+import (
+    "github.com/piwriw/go-chrono/jobs"
+    "github.com/piwriw/go-chrono/retry"
+)
 
 // 固定间隔重试
-chrono.NewCronJob(scheduler).
-    CronExpr("* * * * *").
-    Name("fixed-retry-jobs").
+cronJob := jobs.NewCronJob("* * * * *").
+    Name("fixed-retry-job").
     Task(myTask).
-    WithRetry(3, retry.NewFixedIntervalPolicy(5*time.Second)).
-    Add()
+    WithRetry(3, retry.NewFixedIntervalPolicy(5*time.Second))
 
 // 指数退避重试
-chrono.NewCronJob(scheduler).
-    CronExpr("* * * * *").
-    Name("exponential-retry-jobs").
+cronJob := jobs.NewCronJob("* * * * *").
+    Name("exponential-retry-job").
     Task(myTask).
-    WithRetry(5, retry.NewExponentialBackoffPolicy(1*time.Second, 60*time.Second)).
-    Add()
+    WithRetry(5, retry.NewExponentialBackoffPolicy(1*time.Second, 60*time.Second))
 
 // 带抖动的重试（避免雷击效应）
 basePolicy := retry.NewFixedIntervalPolicy(10 * time.Second)
 jitterPolicy := retry.NewJitterPolicy(basePolicy, 0.2)  // 20% 抖动
-chrono.NewCronJob(scheduler).
-    CronExpr("* * * * *").
-    Name("jitter-retry-jobs").
+cronJob := jobs.NewCronJob("* * * * *").
+    Name("jitter-retry-job").
     Task(myTask).
     WithRetryConfig(&retry.RetryConfig{
         MaxRetries: 3,
         Policy:     jitterPolicy,
-    }).
-    Add()
+    })
 ```
 
 ### 查询重试历史
@@ -201,19 +226,30 @@ curl http://localhost:8080/jobs/{job_id}/retries
 
 ## 调度器选项
 
+```go
+import (
+    "github.com/piwriw/go-chrono/scheduler"
+    "github.com/piwriw/go-chrono/monitor"
+)
+```
+
 ### 启用别名模式
 
 ```go
-scheduler := chrono.NewScheduler(
-    chrono.WithAliasMode(),
+sched, err := scheduler.NewScheduler(
+    ctx,
+    nil,
+    scheduler.WithAliasMode(),
 )
 ```
 
 ### 启用 Web 监控
 
 ```go
-scheduler := chrono.NewScheduler(
-    chrono.WithWebMonitor(":8080"),
+sched, err := scheduler.NewScheduler(
+    ctx,
+    monitor.NewDefaultSchedulerMonitor(100),
+    scheduler.WithWebMonitor(":8080"),
 )
 // 访问 http://localhost:8080 查看监控面板
 ```
@@ -221,25 +257,30 @@ scheduler := chrono.NewScheduler(
 ### 启用 Prometheus 指标
 
 ```go
-scheduler := chrono.NewScheduler(
-    chrono.WithPrometheus(":9090"),
+sched, err := scheduler.NewScheduler(
+    ctx,
+    nil,
+    scheduler.WithPrometheus(":9090"),
 )
 ```
 
 ### 设置并发限制
 
 ```go
-scheduler := chrono.NewScheduler(
-    chrono.WithLimit(100),  // 最多 100 个并发任务
+sched, err := scheduler.NewScheduler(
+    ctx,
+    nil,
+    scheduler.WithLimit(100),  // 最多 100 个并发任务
 )
 ```
 
 ## 钩子函数
 
 ```go
-chrono.NewCronJob(scheduler).
-    CronExpr("* * * * *").
-    Name("jobs-with-hooks").
+import "github.com/piwriw/go-chrono/jobs"
+
+cronJob := jobs.NewCronJob("* * * * *").
+    Name("job-with-hooks").
     Task(myTask).
     BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
         fmt.Printf("任务 %s 即将执行\n", jobName)
@@ -249,34 +290,37 @@ chrono.NewCronJob(scheduler).
     }).
     AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
         fmt.Printf("任务 %s 执行失败: %v\n", jobName, err)
-    }).
-    Add()
+    })
 ```
 
 ## 任务管理
 
+```go
+import "github.com/piwriw/go-chrono/scheduler"
+```
+
 ### 按别名移除任务
 
 ```go
-scheduler.RemoveJobByAlias("my-jobs-alias")
+err := sched.RemoveJobByAlias("my-job-alias")
 ```
 
 ### 按名称移除任务
 
 ```go
-scheduler.RemoveJobByName("my-jobs")
+err := sched.RemoveJobByName("my-job")
 ```
 
-### 按移除任务
+### 按 ID 移除任务
 
 ```go
-scheduler.RemoveJob(jobID)
+err := sched.RemoveJobByID(jobID)
 ```
 
 ### 获取所有任务
 
 ```go
-jobs, err := scheduler.GetJobs()
+jobs, err := sched.GetJobs()
 ```
 
 ## Web 监控端点
