@@ -47,13 +47,42 @@ func NewTimeEventIDGenerator(timeFormat string) *TimeEventIDGenerator {
 
 func (g *TimeEventIDGenerator) NextID(jobSpec JobSpec) string {
 	var b strings.Builder
-	b.WriteString(jobSpec.JobID)
+	// Transform JobID: replace "-jobs" suffix with "-job" (singularize)
+	// 转换 JobID：将 "-jobs" 后缀替换为 "-job"（单数化）
+	jobID := jobSpec.JobID
+	if strings.HasSuffix(jobID, "-jobs") {
+		jobID = strings.TrimSuffix(jobID, "-jobs") + "-job"
+	}
+	b.WriteString(jobID)
 	b.WriteByte('_')
-	b.WriteString(jobSpec.JobName)
+	// Transform JobName: replace "-jobs" suffix with "-job" (singularize)
+	// 转换 JobName：将 "-jobs" 后缀替换为 "-job"（单数化）
+	jobName := jobSpec.JobName
+	if strings.HasSuffix(jobName, "-jobs") {
+		jobName = strings.TrimSuffix(jobName, "-jobs") + "-job"
+	}
+	b.WriteString(jobName)
 	b.WriteByte('_')
 	if g.timeFormat != "" {
 		b.WriteString(time.Now().Format(g.timeFormat))
 	}
+	// Add nanosecond precision for uniqueness
+	// 添加纳秒精度以确保唯一性
 	b.WriteString(time.Now().Format("20060102150405"))
+	b.WriteString(time.Now().Format(".000000000"))
 	return b.String()
+}
+
+// isCompleteWord checks if a string is a complete word (contains only alphabetic characters)
+// isCompleteWord 检查字符串是否是完整单词（仅包含字母）
+func isCompleteWord(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, c := range s {
+		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
+			return false
+		}
+	}
+	return true
 }

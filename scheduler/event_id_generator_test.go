@@ -167,10 +167,10 @@ func TestTimeEventIDGenerator(t *testing.T) {
 		timestampPart := strings.TrimPrefix(eventID, expectedPrefix)
 		assert.NotEmpty(t, timestampPart, "timestamp part should not be empty")
 
-		// Verify timestamp format (default: 20060102150405)
-		// 验证时间戳格式（默认：20060102150405）
-		timestampRegex := regexp.MustCompile(`^\d{14}$`)
-		assert.True(t, timestampRegex.MatchString(timestampPart), "timestamp should match format YYYYMMDDHHmmss")
+		// Verify timestamp format (default: 20060102150405.000000000)
+		// 验证时间戳格式（默认：20060102150405.000000000）
+		timestampRegex := regexp.MustCompile(`^\d{14}\.\d{9}$`)
+		assert.True(t, timestampRegex.MatchString(timestampPart), "timestamp should match format YYYYMMDDHHmmss.nnnnnnnnn")
 	})
 
 	t.Run("generates ID with custom time format", func(t *testing.T) {
@@ -190,7 +190,7 @@ func TestTimeEventIDGenerator(t *testing.T) {
 		parts := strings.Split(eventID, "_")
 		assert.GreaterOrEqual(t, len(parts), 3, "ID should have at least 3 parts separated by underscore")
 		assert.Equal(t, "jobs-456", parts[0], "first part should be jobID")
-		assert.Equal(t, "custom", parts[1], "second part should be jobName prefix")
+		assert.Equal(t, "custom-job", parts[1], "second part should be jobName prefix")
 	})
 
 	t.Run("generates different IDs for consecutive calls", func(t *testing.T) {

@@ -361,12 +361,12 @@ func (m *mockJobWatchInterface) GetJobName() string {
 	return "mock-jobs"
 }
 
-func (m *mockJobWatchInterface) GetStartTime() time.Time {
-	return time.Time{}
+func (m *mockJobWatchInterface) GetStartTime() *time.Time {
+	return nil
 }
 
-func (m *mockJobWatchInterface) GetEndTime() time.Time {
-	return time.Time{}
+func (m *mockJobWatchInterface) GetEndTime() *time.Time {
+	return nil
 }
 
 func (m *mockJobWatchInterface) GetStatus() int {

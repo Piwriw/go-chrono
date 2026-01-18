@@ -284,8 +284,12 @@ func TestRecordJobTimingWithStatus(t *testing.T) {
 		event := events[0]
 		assert.Equal(t, gocron.Success, event.Status, "status should be Success")
 		assert.NoError(t, event.Err, "error should be nil")
-		assert.WithinDuration(t, startTime, event.StartTime, 10*time.Millisecond, "start time should match")
-		assert.WithinDuration(t, endTime, event.EndTime, 10*time.Millisecond, "end time should match")
+		if event.StartTime != nil {
+			assert.WithinDuration(t, startTime, *event.StartTime, 10*time.Millisecond, "start time should match")
+		}
+		if event.EndTime != nil {
+			assert.WithinDuration(t, endTime, *event.EndTime, 10*time.Millisecond, "end time should match")
+		}
 	})
 
 	t.Run("records failed jobs execution with error", func(t *testing.T) {
@@ -388,8 +392,8 @@ func TestUpdateJobEvents(t *testing.T) {
 		tags := []string{"new"}
 		newEvent := &JobEvent{
 			EventID:   "event-1",
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Success,
 		}
 
@@ -418,8 +422,8 @@ func TestUpdateJobEvents(t *testing.T) {
 		for i := 0; i < maxRecords; i++ {
 			newEvent := &JobEvent{
 				EventID:   "event-" + string(rune('A'+i)),
-				StartTime: time.Now(),
-				EndTime:   time.Now(),
+				StartTime: func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 				Status:    gocron.Success,
 			}
 			monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -446,8 +450,8 @@ func TestUpdateJobEvents(t *testing.T) {
 			eventIDs[i] = eventID
 			newEvent := &JobEvent{
 				EventID:   eventID,
-				StartTime: time.Now(),
-				EndTime:   time.Now(),
+				StartTime: func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 				Status:    gocron.Success,
 			}
 			monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -474,8 +478,8 @@ func TestUpdateJobEvents(t *testing.T) {
 		jobName := "no-tags-jobs"
 		newEvent := &JobEvent{
 			EventID:   "event-no-tags",
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Success,
 		}
 
@@ -528,9 +532,9 @@ func TestGetJobEvents(t *testing.T) {
 		// Add multiple events
 		// 添加多个事件
 		expectedEvents := []*JobEvent{
-			{EventID: "event-1", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
-			{EventID: "event-2", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
-			{EventID: "event-3", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
+			{EventID: "event-1", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
+			{EventID: "event-2", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
+			{EventID: "event-3", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
 		}
 
 		for _, event := range expectedEvents {
@@ -555,8 +559,8 @@ func TestGetJobEvents(t *testing.T) {
 		for _, id := range eventIDs {
 			newEvent := &JobEvent{
 				EventID:   id,
-				StartTime: time.Now(),
-				EndTime:   time.Now(),
+				StartTime: func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 				Status:    gocron.Success,
 			}
 			monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -657,9 +661,9 @@ func TestMonitorJobSpec(t *testing.T) {
 		t.Parallel()
 
 		events := []*JobEvent{
-			{EventID: "event-1", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
-			{EventID: "event-2", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
-			{EventID: "event-3", StartTime: time.Now(), EndTime: time.Now(), Status: gocron.Success},
+			{EventID: "event-1", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
+			{EventID: "event-2", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
+			{EventID: "event-3", StartTime: func() *time.Time { t := time.Now(); return &t }(), EndTime: func() *time.Time { t := time.Now(); return &t }(), Status: gocron.Success},
 		}
 		spec := MonitorJobSpec{
 			JobEvents: events,
@@ -697,10 +701,10 @@ func TestJobEvent(t *testing.T) {
 
 		expectedTime := time.Now()
 		event := JobEvent{
-			StartTime: expectedTime,
+			StartTime: &expectedTime,
 		}
 
-		assert.WithinDuration(t, expectedTime, event.GetStartTime(), time.Microsecond, "should return correct start time")
+		assert.WithinDuration(t, expectedTime, *event.GetStartTime(), time.Microsecond, "should return correct start time")
 	})
 
 	t.Run("GetEndTime returns correct end time", func(t *testing.T) {
@@ -708,10 +712,10 @@ func TestJobEvent(t *testing.T) {
 
 		expectedTime := time.Now()
 		event := JobEvent{
-			EndTime: expectedTime,
+			EndTime: &expectedTime,
 		}
 
-		assert.WithinDuration(t, expectedTime, event.GetEndTime(), time.Microsecond, "should return correct end time")
+		assert.WithinDuration(t, expectedTime, *event.GetEndTime(), time.Microsecond, "should return correct end time")
 	})
 
 	t.Run("GetStatus returns correct status", func(t *testing.T) {
@@ -730,8 +734,8 @@ func TestJobEvent(t *testing.T) {
 		startTime := time.Now()
 		endTime := startTime.Add(100 * time.Millisecond)
 		event := JobEvent{
-			StartTime: startTime,
-			EndTime:   endTime,
+			StartTime: &startTime,
+			EndTime:   &endTime,
 		}
 
 		spendTime := event.GetSpendTime()
@@ -757,8 +761,8 @@ func TestJobEvent(t *testing.T) {
 		endTime := time.Date(2024, 1, 15, 14, 31, 0, 0, time.UTC)
 		event := JobEvent{
 			EventID:   "test-event-123",
-			StartTime: startTime,
-			EndTime:   endTime,
+			StartTime: &startTime,
+			EndTime:   &endTime,
 			Status:    gocron.Success,
 			Err:       nil,
 		}
@@ -780,8 +784,8 @@ func TestJobEvent(t *testing.T) {
 
 		event := JobEvent{
 			EventID:   "error-event",
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Fail,
 			Err:       assert.AnError,
 		}
@@ -845,8 +849,8 @@ func BenchmarkUpdateJobEvents(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		newEvent := &JobEvent{
 			EventID:   "event-" + string(rune('0'+i%10)),
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Success,
 		}
 		monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -892,21 +896,24 @@ func TestGetRetryHistory(t *testing.T) {
 		// Add retry events
 		// 添加重试事件
 		now := time.Now()
+		t1 := now.Add(-3 * time.Second)
+		t2 := now.Add(-2 * time.Second)
+		t3 := now.Add(-1 * time.Second)
 		events := []*retry.RetryEvent{
 			{
 				EventID:         "retry-1",
 				OriginalEventID: jobID,
 				Attempt:         0,
-				StartTime:       now.Add(-3 * time.Second),
-				EndTime:         now.Add(-2 * time.Second),
+				StartTime:       &t1,
+				EndTime:         &t2,
 				NextRetryIn:     1 * time.Second,
 			},
 			{
 				EventID:         "retry-2",
 				OriginalEventID: jobID,
 				Attempt:         1,
-				StartTime:       now.Add(-1 * time.Second),
-				EndTime:         now,
+				StartTime:       &t3,
+				EndTime:         &now,
 				NextRetryIn:     2 * time.Second,
 			},
 		}
@@ -929,8 +936,8 @@ func TestGetRetryHistory(t *testing.T) {
 			EventID:         "retry-1",
 			OriginalEventID: jobID,
 			Attempt:         0,
-			StartTime:       time.Now(),
-			EndTime:         time.Now(),
+			StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 			NextRetryIn:     1 * time.Second,
 		}
 		monitor.RecordRetryEvent(event)
@@ -964,12 +971,14 @@ func TestRecordRetryEvent(t *testing.T) {
 		monitor := NewDefaultSchedulerMonitor()
 		jobID := uuid.New().String()
 
+		t1 := time.Now()
+		t2 := t1.Add(1 * time.Second)
 		event := &retry.RetryEvent{
 			EventID:         "retry-1",
 			OriginalEventID: jobID,
 			Attempt:         0,
-			StartTime:       time.Now(),
-			EndTime:         time.Now().Add(1 * time.Second),
+			StartTime:       &t1,
+			EndTime:         &t2,
 			NextRetryIn:     5 * time.Second,
 		}
 
@@ -993,8 +1002,8 @@ func TestRecordRetryEvent(t *testing.T) {
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
 				Attempt:         i,
-				StartTime:       time.Now(),
-				EndTime:         time.Now(),
+				StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 				NextRetryIn:     time.Duration(i) * time.Second,
 			}
 			monitor.RecordRetryEvent(event)
@@ -1018,8 +1027,8 @@ func TestRecordRetryEvent(t *testing.T) {
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
 				Attempt:         i,
-				StartTime:       time.Now(),
-				EndTime:         time.Now(),
+				StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 				NextRetryIn:     1 * time.Second,
 			}
 			monitor.RecordRetryEvent(event)
@@ -1066,8 +1075,8 @@ func TestUpdateJobEventsConcurrency(t *testing.T) {
 				for j := 0; j < updatesPerGoroutine; j++ {
 					newEvent := &JobEvent{
 						EventID:   fmt.Sprintf("event-%d-%d", index, j),
-						StartTime: time.Now(),
-						EndTime:   time.Now(),
+						StartTime: func() *time.Time { t := time.Now(); return &t }(),
+						EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 						Status:    gocron.Success,
 					}
 					monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -1105,8 +1114,8 @@ func TestGetJobEventsConcurrency(t *testing.T) {
 		// 首先添加一个初始事件
 		initialEvent := &JobEvent{
 			EventID:   "initial",
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Success,
 		}
 		monitor.UpdateJobEvents(jobID, jobName, initialEvent, tags...)
@@ -1123,8 +1132,8 @@ func TestGetJobEventsConcurrency(t *testing.T) {
 				for j := 0; j < 10; j++ {
 					newEvent := &JobEvent{
 						EventID:   fmt.Sprintf("write-%d-%d", index, j),
-						StartTime: time.Now(),
-						EndTime:   time.Now(),
+						StartTime: func() *time.Time { t := time.Now(); return &t }(),
+						EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 						Status:    gocron.Success,
 					}
 					monitor.UpdateJobEvents(jobID, jobName, newEvent, tags...)
@@ -1165,8 +1174,8 @@ func TestJobEventRetryFields(t *testing.T) {
 		endTime := time.Date(2024, 1, 15, 14, 31, 0, 0, time.UTC)
 		event := JobEvent{
 			EventID:         "retry-event-123",
-			StartTime:       startTime,
-			EndTime:         endTime,
+			StartTime:       &startTime,
+			EndTime:         &endTime,
 			Status:          gocron.Fail,
 			Err:             assert.AnError,
 			RetryCount:      3,
@@ -1191,8 +1200,8 @@ func TestJobEventRetryFields(t *testing.T) {
 
 		event := JobEvent{
 			EventID:   "normal-event",
-			StartTime: time.Now(),
-			EndTime:   time.Now(),
+			StartTime: func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:   func() *time.Time { t := time.Now(); return &t }(),
 			Status:    gocron.Success,
 			Err:       nil,
 			// Retry fields are zero values / 重试字段为零值

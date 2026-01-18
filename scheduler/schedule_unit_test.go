@@ -994,18 +994,18 @@ func TestEvent_methods(t *testing.T) {
 		t.Parallel()
 
 		expectedTime := time.Now().Add(time.Hour)
-		event := Event{NextRunTime: expectedTime}
+		event := Event{NextRunTime: &expectedTime}
 
-		assert.WithinDuration(t, expectedTime, event.GetNextRunTime(), time.Microsecond, "next run time should match")
+		assert.WithinDuration(t, expectedTime, *event.GetNextRunTime(), time.Microsecond, "next run time should match")
 	})
 
 	t.Run("GetLastTime returns correct last time", func(t *testing.T) {
 		t.Parallel()
 
 		expectedTime := time.Now().Add(-time.Hour)
-		event := Event{LastTime: expectedTime}
+		event := Event{LastTime: &expectedTime}
 
-		assert.WithinDuration(t, expectedTime, event.GetLastTime(), time.Microsecond, "last time should match")
+		assert.WithinDuration(t, expectedTime, *event.GetLastTime(), time.Microsecond, "last time should match")
 	})
 
 	t.Run("GetError returns correct error", func(t *testing.T) {

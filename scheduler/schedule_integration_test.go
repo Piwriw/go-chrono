@@ -1,3 +1,6 @@
+//go:build integration
+// +build integration
+
 package scheduler
 
 import (
@@ -531,6 +534,7 @@ func TestDefaultHooks(t *testing.T) {
 	}
 	cronJob := jobs.NewCronJob(
 		jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestDefaultHooks").
 		Task(task, 1, 2).
 		DefaultHooks()
 
@@ -572,6 +576,7 @@ func TestDayTimeToCron(t *testing.T) {
 		fmt.Println("Task executed with parameters:", a, b)
 	}
 	cronJob := jobs.NewCronJob(jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestDayTimeToCron").
 		Task(task, 1, 2).
 		AfterJobRuns(func(jobID uuid.UUID, jobName string) {
 			fmt.Println("AfterJobRuns")
@@ -598,7 +603,7 @@ func TestDayTimeToCron(t *testing.T) {
 
 func TestWebMonitor(t *testing.T) {
 	monitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3))
-	scheduler, err := NewScheduler(context.TODO(), monitor, WithWebMonitor("localhost:8080"))
+	scheduler, err := NewScheduler(context.TODO(), monitor, WithWebMonitor("localhost:18080"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -661,7 +666,7 @@ func TestLimit(t *testing.T) {
 
 func TestWeb(t *testing.T) {
 	schedMonitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3), monitor.WithEventIDGenerator(monitor.NewTimeEventIDGenerator("20060102150405")))
-	scheduler, err := NewScheduler(context.TODO(), schedMonitor, WithWebMonitor("localhost:8080"))
+	scheduler, err := NewScheduler(context.TODO(), schedMonitor, WithWebMonitor("localhost:28080"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -690,8 +695,8 @@ func TestWithPrometheus(t *testing.T) {
 	scheduler, err := NewScheduler(context.TODO(),
 		monitor,
 		WithWatch(nil),
-		WithWebMonitor("localhost:8080"),
-		WithPrometheus("localhost:8888"))
+		WithWebMonitor("localhost:38080"),
+		WithPrometheus("localhost:18888"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -720,8 +725,8 @@ func TestIntervalJobClient(t *testing.T) {
 	scheduler, err := NewScheduler(context.TODO(),
 		monitor,
 		WithWatch(nil),
-		WithWebMonitor("localhost:8080"),
-		WithPrometheus("localhost:8888"))
+		WithWebMonitor("localhost:48080"),
+		WithPrometheus("localhost:28888"))
 	if err != nil {
 		t.Fatal(err)
 	}

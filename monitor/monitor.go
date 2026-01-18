@@ -43,14 +43,14 @@ type JobWatchInterface interface {
 	// 获取任务开始时间。
 	//
 	// Returns:
-	//	time.Time - The start time / 开始时间
-	GetStartTime() time.Time
+	//	*time.Time - The start time / 开始时间
+	GetStartTime() *time.Time
 	// GetEndTime gets the jobs end time.
 	// 获取任务结束时间。
 	//
 	// Returns:
-	//	time.Time - The end time / 结束时间
-	GetEndTime() time.Time
+	//	*time.Time - The end time / 结束时间
+	GetEndTime() *time.Time
 	// GetStatus gets the jobs status.
 	// 获取任务状态。
 	//
@@ -420,10 +420,10 @@ func (m MonitorJobSpec) Error() error {
 //
 // Returns:
 //
-//	time.Time - The start time / 开始时间
-func (m MonitorJobSpec) GetStartTime() time.Time {
+//	*time.Time - The start time / 开始时间
+func (m MonitorJobSpec) GetStartTime() *time.Time {
 	if len(m.JobEvents) == 0 {
-		return time.Time{}
+		return nil
 	}
 	return m.JobEvents[len(m.JobEvents)-1].StartTime
 }
@@ -433,10 +433,10 @@ func (m MonitorJobSpec) GetStartTime() time.Time {
 //
 // Returns:
 //
-//	time.Time - The end time / 结束时间
-func (m MonitorJobSpec) GetEndTime() time.Time {
+//	*time.Time - The end time / 结束时间
+func (m MonitorJobSpec) GetEndTime() *time.Time {
 	if len(m.JobEvents) == 0 {
-		return time.Time{}
+		return nil
 	}
 	return m.JobEvents[len(m.JobEvents)-1].EndTime
 }
@@ -464,10 +464,10 @@ type JobEvent struct {
 	EventID string
 	// StartTime is the start time.
 	// StartTime 是开始时间。
-	StartTime time.Time
+	StartTime *time.Time
 	// EndTime is the end time.
 	// EndTime 是结束时间。
-	EndTime time.Time
+	EndTime *time.Time
 	// Status is the jobs status.
 	// Status 是任务状态。
 	Status gocron.JobStatus
@@ -498,8 +498,8 @@ type JobEvent struct {
 func (m JobEvent) MarshalJSON() ([]byte, error) {
 	type Alias struct {
 		EventID         string           `json:"event_id"`
-		StartTime       string           `json:"start_time"`
-		EndTime         string           `json:"end_time"`
+		StartTime       *string          `json:"start_time,omitempty"`
+		EndTime         *string          `json:"end_time,omitempty"`
 		Status          gocron.JobStatus `json:"status"`
 		Err             string           `json:"error"`
 		RetryCount      int              `json:"retry_count,omitempty"`
@@ -512,10 +512,20 @@ func (m JobEvent) MarshalJSON() ([]byte, error) {
 		errStr = m.Err.Error()
 	}
 
+	var startTimeStr, endTimeStr *string
+	if m.StartTime != nil {
+		s := m.StartTime.Format(time.DateTime)
+		startTimeStr = &s
+	}
+	if m.EndTime != nil {
+		s := m.EndTime.Format(time.DateTime)
+		endTimeStr = &s
+	}
+
 	return json.Marshal(&Alias{
 		EventID:         m.EventID,
-		StartTime:       m.StartTime.Format(time.DateTime),
-		EndTime:         m.EndTime.Format(time.DateTime),
+		StartTime:       startTimeStr,
+		EndTime:         endTimeStr,
 		Status:          m.Status,
 		Err:             errStr,
 		RetryCount:      m.RetryCount,
@@ -529,8 +539,8 @@ func (m JobEvent) MarshalJSON() ([]byte, error) {
 //
 // Returns:
 //
-//	time.Time - The start time / 开始时间
-func (m JobEvent) GetStartTime() time.Time {
+//	*time.Time - The start time / 开始时间
+func (m JobEvent) GetStartTime() *time.Time {
 	return m.StartTime
 }
 
@@ -539,8 +549,8 @@ func (m JobEvent) GetStartTime() time.Time {
 //
 // Returns:
 //
-//	time.Time - The end time / 结束时间
-func (m JobEvent) GetEndTime() time.Time {
+//	*time.Time - The end time / 结束时间
+func (m JobEvent) GetEndTime() *time.Time {
 	return m.EndTime
 }
 
@@ -560,7 +570,11 @@ func (m JobEvent) GetStatus() gocron.JobStatus {
 // Returns:
 //
 //	int64 - The spend time in milliseconds / 花费的时间（毫秒）
+//	int64 - Zero if start or end time is nil / 如果开始或结束时间为 nil 则返回零值
 func (m JobEvent) GetSpendTime() int64 {
+	if m.StartTime == nil || m.EndTime == nil {
+		return 0
+	}
 	return m.EndTime.UnixMilli() - m.StartTime.UnixMilli()
 }
 
@@ -687,8 +701,8 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 
 	newEvent := &JobEvent{
 		EventID:   s.eventIDCli.NextID(jobSpec),
-		StartTime: startTime,
-		EndTime:   endTime,
+		StartTime: &startTime,
+		EndTime:   &endTime,
 		Status:    status,
 		Err:       err,
 	}

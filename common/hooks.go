@@ -29,14 +29,14 @@ type JobWatchInterface interface {
 	// 获取任务开始时间。
 	//
 	// Returns:
-	//	time.Time - The start time / 开始时间
-	GetStartTime() time.Time
+	//	*time.Time - The start time / 开始时间
+	GetStartTime() *time.Time
 	// GetEndTime gets the jobs end time.
 	// 获取任务结束时间。
 	//
 	// Returns:
-	//	time.Time - The end time / 结束时间
-	GetEndTime() time.Time
+	//	*time.Time - The end time / 结束时间
+	GetEndTime() *time.Time
 	// GetStatus gets the jobs status.
 	// 获取任务状态。
 	//
@@ -71,10 +71,10 @@ type JobEvent struct {
 	EventID string
 	// StartTime is the start time.
 	// StartTime 是开始时间。
-	StartTime time.Time
+	StartTime *time.Time
 	// EndTime is the end time.
 	// EndTime 是结束时间。
-	EndTime time.Time
+	EndTime *time.Time
 	// Status is the jobs status.
 	// Status 是任务状态。
 	Status int
@@ -255,10 +255,10 @@ type SchedulerInterface interface {
 	//	jobID - The jobs ID / 任务 ID
 	//
 	// Returns:
-	//	time.Time - Last run time / 最后运行时间
-	//	time.Time - Next run time / 下次运行时间
+	//	*time.Time - Last run time / 最后运行时间
+	//	*time.Time - Next run time / 下次运行时间
 	//	error - Error if the operation fails / 操作失败时返回错误
-	GetJobLastAndNextByID(jobID string) (time.Time, time.Time, error)
+	GetJobLastAndNextByID(jobID string) (*time.Time, *time.Time, error)
 	// Enable checks if a specific option is enabled.
 	// Enable 用于查询某个选项是否启用。
 	//

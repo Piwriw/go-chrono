@@ -122,11 +122,11 @@ func (wm *WebMonitor) handleJobs(w http.ResponseWriter, r *http.Request) {
 			Name:   job.Name(),
 			Events: events,
 		}
-		if !last.IsZero() {
-			spec.LastRun = &last
+		if last != nil && !last.IsZero() {
+			spec.LastRun = last
 		}
-		if !next.IsZero() {
-			spec.NextRun = &next
+		if next != nil && !next.IsZero() {
+			spec.NextRun = next
 		}
 		if wm.scheduler.Enable(common.AliasOptionName) {
 			alias, err := wm.scheduler.GetAlias(job.ID().String())

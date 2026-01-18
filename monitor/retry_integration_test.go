@@ -116,8 +116,8 @@ func TestRetryEventCreation(t *testing.T) {
 			"event-123",
 			"original-event-456",
 			2,
-			startTime,
-			endTime,
+			&startTime,
+			&endTime,
 			testErr,
 			10*time.Second,
 		)
@@ -156,8 +156,8 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 			EventID:         "retry-1",
 			OriginalEventID: jobID,
 			Attempt:         0,
-			StartTime:       time.Now(),
-			EndTime:         time.Now(),
+			StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 			NextRetryIn:     1 * time.Second,
 		}
 
@@ -177,8 +177,8 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 			EventID:         "retry-copy",
 			OriginalEventID: jobID,
 			Attempt:         0,
-			StartTime:       time.Now(),
-			EndTime:         time.Now(),
+			StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+			EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 			NextRetryIn:     1 * time.Second,
 		}
 
@@ -207,8 +207,8 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
 				Attempt:         i,
-				StartTime:       time.Now(),
-				EndTime:         time.Now(),
+				StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 				NextRetryIn:     1 * time.Second,
 			}
 			customSchedMonitor.RecordRetryEvent(event)
@@ -234,8 +234,8 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
 				Attempt:         i,
-				StartTime:       time.Now(),
-				EndTime:         time.Now(),
+				StartTime:       func() *time.Time { t := time.Now(); return &t }(),
+				EndTime:         func() *time.Time { t := time.Now(); return &t }(),
 				NextRetryIn:     1 * time.Second,
 			}
 			zeroSchedMonitor.RecordRetryEvent(event)

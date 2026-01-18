@@ -230,10 +230,10 @@ type Event struct {
 	JobName string
 	// Next run time
 	// 下次运行时间
-	NextRunTime time.Time
+	NextRunTime *time.Time
 	// Last run time
 	// 上次运行时间
-	LastTime time.Time
+	LastTime *time.Time
 	// Error
 	// 错误
 	Err error
@@ -265,7 +265,7 @@ func (e Event) GetJobName() string {
 // Returns:
 //
 //	time.Time - The next run time / 下次运行时间
-func (e Event) GetNextRunTime() time.Time {
+func (e Event) GetNextRunTime() *time.Time {
 	return e.NextRunTime
 }
 
@@ -275,7 +275,7 @@ func (e Event) GetNextRunTime() time.Time {
 // Returns:
 //
 //	time.Time - The last run time / 上次运行时间
-func (e Event) GetLastTime() time.Time {
+func (e Event) GetLastTime() *time.Time {
 	return e.LastTime
 }
 
@@ -376,8 +376,8 @@ func (a *jobWatchAdapter) GetJobName() string {
 //
 // Returns:
 //
-//	time.Time - The start time / 开始时间
-func (a *jobWatchAdapter) GetStartTime() time.Time {
+//	*time.Time - The start time / 开始时间
+func (a *jobWatchAdapter) GetStartTime() *time.Time {
 	return a.event.GetStartTime()
 }
 
@@ -386,8 +386,8 @@ func (a *jobWatchAdapter) GetStartTime() time.Time {
 //
 // Returns:
 //
-//	time.Time - The end time / 结束时间
-func (a *jobWatchAdapter) GetEndTime() time.Time {
+//	*time.Time - The end time / 结束时间
+func (a *jobWatchAdapter) GetEndTime() *time.Time {
 	return a.event.GetEndTime()
 }
 
@@ -634,7 +634,7 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	// Remove alias if alias option is Enabled
 	// 如果启用别名选项，则移除别名
 	if s.Enable(common.AliasOptionName) {
-		s.removeAlias(jobID)
+		s.removeAliasByJobID(jobID)
 	}
 	// Remove watch function if watch option is Enabled
 	// 如果启用监听选项，则移除监听函数
@@ -889,6 +889,21 @@ func (s *Scheduler) removeAlias(alias string) {
 	}
 }
 
+// removeAliasByJobID removes an alias by jobID.
+// removeAliasByJobID 通过 jobID 移除别名。
+func (s *Scheduler) removeAliasByJobID(jobID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	for alias, jid := range s.aliasMap {
+		if jid == jobID {
+			delete(s.aliasMap, alias)
+			slog.Info("chrono:alias removed", "alias", alias, "jobID", jobID)
+			return
+		}
+	}
+	slog.Warn("chrono:alias not found for jobID", "jobID", jobID)
+}
+
 // addWatchFunc adds a watch function for a jobs.
 // addWatchFunc 为任务添加监听函数。
 func (s *Scheduler) addWatchFunc(jobID string, fn func(event monitor.JobWatchInterface)) {
@@ -925,6 +940,11 @@ func (s *Scheduler) removeWatchFunc(jobID string) {
 //
 //	bool - True if limit is not reached, false otherwise / 如果未达到限制返回true，否则返回false
 func (s *Scheduler) CheckLimit() bool {
+	// If limit option is disabled, return true (unlimited)
+	// 如果限制选项未启用，返回true（无限制）
+	if !s.Enable(common.LimitOptionName) {
+		return true
+	}
 	// Decrease limit
 	// 减少限制
 	if err := s.decLimit(); err != nil {
@@ -1037,33 +1057,33 @@ func (s *Scheduler) GetJobs() ([]common.Job, error) {
 //
 // Returns:
 //
-//	time.Time - The last run time / 最后运行时间
-//	error     - Error if retrieval fails / 如果获取失败的错误
-func (s *Scheduler) GetJobLastTimeByAlias(alias string) (time.Time, error) {
+//	*time.Time - The last run time / 最后运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobLastTimeByAlias(alias string) (*time.Time, error) {
 	// Check if alias option is Enabled
 	// 检查是否启用别名选项
 	if !s.Enable(common.AliasOptionName) {
-		return time.Time{}, common.ErrDisEnableAlias
+		return nil, common.ErrDisEnableAlias
 	}
 	// Get jobID by alias
 	// 通过别名获取任务ID
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
-		return time.Time{}, common.ErrFoundAlias
+		return nil, common.ErrFoundAlias
 	}
 	// Get jobs by ID
 	// 通过ID获取任务
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 	// Get last run time
 	// 获取最后运行时间
 	lastRun, err := job.LastRun()
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
-	return lastRun, nil
+	return &lastRun, nil
 }
 
 // GetJobLastTime gets the last run time of a jobs by jobID.
@@ -1075,43 +1095,52 @@ func (s *Scheduler) GetJobLastTimeByAlias(alias string) (time.Time, error) {
 //
 // Returns:
 //
-//	time.Time - The last run time / 最后运行时间
-//	error     - Error if retrieval fails / 如果获取失败的错误
-func (s *Scheduler) GetJobLastTime(jobID string) (time.Time, error) {
+//	*time.Time - The last run time / 最后运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobLastTime(jobID string) (*time.Time, error) {
 	// Get jobs by ID
 	// 通过ID获取任务
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 	// Get last run time
 	// 获取最后运行时间
 	lastRun, err := job.LastRun()
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
-	return lastRun, nil
+	return &lastRun, nil
 }
 
 // GetJobNextTimeByAlias gets the next run time of a jobs by alias.
 // GetJobNextTimeByAlias 通过别名获取任务的下次运行时间。
-func (s *Scheduler) GetJobNextTimeByAlias(alias string) (time.Time, error) {
+//
+// Parameters:
+//
+//	alias - The jobs alias / 任务别名
+//
+// Returns:
+//
+//	*time.Time - The next run time / 下次运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobNextTimeByAlias(alias string) (*time.Time, error) {
 	if !s.Enable(common.AliasOptionName) {
-		return time.Time{}, common.ErrDisEnableAlias
+		return nil, common.ErrDisEnableAlias
 	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
-		return time.Time{}, common.ErrFoundAlias
+		return nil, common.ErrFoundAlias
 	}
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 	nextRun, err := job.NextRun()
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
-	return nextRun, nil
+	return &nextRun, nil
 }
 
 // GetJobNextTime gets the next run time of a jobs by jobID.
@@ -1123,65 +1152,85 @@ func (s *Scheduler) GetJobNextTimeByAlias(alias string) (time.Time, error) {
 //
 // Returns:
 //
-//	time.Time - The next run time / 下次运行时间
-//	error     - Error if retrieval fails / 如果获取失败的错误
-func (s *Scheduler) GetJobNextTime(jobID string) (time.Time, error) {
+//	*time.Time - The next run time / 下次运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobNextTime(jobID string) (*time.Time, error) {
 	// Get jobs by ID
 	// 通过ID获取任务
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
 	// Get next run time
 	// 获取下次运行时间
 	nextRun, err := job.NextRun()
 	if err != nil {
-		return time.Time{}, err
+		return nil, err
 	}
-	return nextRun, nil
+	return &nextRun, nil
 }
 
 // GetJobLastAndNextByAlias gets the last and next run times of a jobs by alias.
 // GetJobLastAndNextByAlias 通过别名获取任务的最后和下次运行时间。
-func (s *Scheduler) GetJobLastAndNextByAlias(alias string) (time.Time, time.Time, error) {
+//
+// Parameters:
+//
+//	alias - The jobs alias / 任务别名
+//
+// Returns:
+//
+//	*time.Time - The last run time / 最后运行时间
+//	*time.Time - The next run time / 下次运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobLastAndNextByAlias(alias string) (*time.Time, *time.Time, error) {
 	if !s.Enable(common.AliasOptionName) {
-		return time.Time{}, time.Time{}, common.ErrDisEnableAlias
+		return nil, nil, common.ErrDisEnableAlias
 	}
 	jobID, ok := s.aliasMap[alias]
 	if !ok {
-		return time.Time{}, time.Time{}, common.ErrFoundAlias
+		return nil, nil, common.ErrFoundAlias
 	}
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
 	lastRun, err := job.LastRun()
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
 	nextRun, err := job.NextRun()
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
-	return lastRun, nextRun, nil
+	return &lastRun, &nextRun, nil
 }
 
 // GetJobLastAndNextByID gets the last and next run times of a jobs by jobID.
 // GetJobLastAndNextByID 通过 jobID 获取任务的最后和下次运行时间。
-func (s *Scheduler) GetJobLastAndNextByID(jobID string) (time.Time, time.Time, error) {
+//
+// Parameters:
+//
+//	jobID - The jobs ID / 任务ID
+//
+// Returns:
+//
+//	*time.Time - The last run time / 最后运行时间
+//	*time.Time - The next run time / 下次运行时间
+//	error      - Error if retrieval fails / 如果获取失败的错误
+func (s *Scheduler) GetJobLastAndNextByID(jobID string) (*time.Time, *time.Time, error) {
 	job, err := s.GetJobByID(jobID)
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
 	lastRun, err := job.LastRun()
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
 	nextRun, err := job.NextRun()
 	if err != nil {
-		return time.Time{}, time.Time{}, err
+		return nil, nil, err
 	}
-	return lastRun, nextRun, nil
+	return &lastRun, &nextRun, nil
 }
 
 // GetJobByName gets a jobs by its name.

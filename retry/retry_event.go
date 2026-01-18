@@ -25,11 +25,11 @@ type RetryEvent struct {
 
 	// StartTime is the start time.
 	// StartTime 开始时间
-	StartTime time.Time `json:"start_time"`
+	StartTime *time.Time `json:"start_time,omitempty"`
 
 	// EndTime is the end time.
 	// EndTime 结束时间
-	EndTime time.Time `json:"end_time"`
+	EndTime *time.Time `json:"end_time,omitempty"`
 
 	// Err is the error.
 	// Err 错误
@@ -72,8 +72,12 @@ func (r *RetryEvent) MarshalJSON() ([]byte, error) {
 // Returns:
 //
 //	time.Duration - Execution duration / 执行耗时
+//	time.Duration - Zero if start or end time is nil / 如果开始或结束时间为 nil 则返回零值
 func (r *RetryEvent) GetDuration() time.Duration {
-	return r.EndTime.Sub(r.StartTime)
+	if r.StartTime == nil || r.EndTime == nil {
+		return 0
+	}
+	return r.EndTime.Sub(*r.StartTime)
 }
 
 // NewRetryEvent creates a new retry event.
@@ -92,7 +96,7 @@ func (r *RetryEvent) GetDuration() time.Duration {
 // Returns:
 //
 //	*RetryEvent - New retry event / 新的重试事件
-func NewRetryEvent(eventID, originalEventID string, attempt int, startTime, endTime time.Time, err error, nextRetryIn time.Duration) *RetryEvent {
+func NewRetryEvent(eventID, originalEventID string, attempt int, startTime, endTime *time.Time, err error, nextRetryIn time.Duration) *RetryEvent {
 	errMsg := ""
 	if err != nil && !errors.Is(err, nil) {
 		errMsg = err.Error()
