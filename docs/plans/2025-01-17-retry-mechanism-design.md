@@ -222,7 +222,7 @@ type SchedulerMonitor interface {
     // Existing methods...
 
     // GetRetryHistory 获取任务的重试历史
-    // GetRetryHistory gets the retry history for a job
+    // GetRetryHistory gets the retry history for a jobs
     //
     // Parameters:
     //   jobID - 任务 ID / Job ID
@@ -435,14 +435,14 @@ retryConfig := &chrono.RetryConfig{
     MaxRetries: 3,
     Policy:     chrono.NewFixedIntervalPolicy(5*time.Second),
     OnFinalFailure: func(ctx context.Context, jobID uuid.UUID, jobName string, err error) {
-        log.Error("Job failed after all retries", "job", jobName, "error", err)
+        log.Error("Job failed after all retries", "jobs", jobName, "error", err)
         // 发送告警通知
         // Send alert notification
     },
 }
 
 scheduler.Cron().
-    Names("critical-job").
+    Names("critical-jobs").
     CronExpr("*/5 * * * *").
     WithRetryConfig(retryConfig).
     Task(criticalTask).

@@ -20,7 +20,7 @@ func TestRetryExecutor_ExecuteWithRetry_Success(t *testing.T) {
 		Policy:     NewFixedIntervalPolicy(10 * time.Millisecond),
 	}
 
-	executor := NewRetryExecutor(config, uuid.New(), "test-job")
+	executor := NewRetryExecutor(config, uuid.New(), "test-jobs")
 
 	callCount := 0
 	task := func() error {
@@ -50,7 +50,7 @@ func TestRetryExecutor_ExecuteWithRetry_AllRetriesFailed(t *testing.T) {
 		Policy:     NewFixedIntervalPolicy(10 * time.Millisecond),
 	}
 
-	executor := NewRetryExecutor(config, uuid.New(), "test-job")
+	executor := NewRetryExecutor(config, uuid.New(), "test-jobs")
 
 	callCount := 0
 	task := func() error {
@@ -77,7 +77,7 @@ func TestRetryExecutor_ExecuteWithRetry_ContextCanceled(t *testing.T) {
 		Policy:     NewFixedIntervalPolicy(1 * time.Second),
 	}
 
-	executor := NewRetryExecutor(config, uuid.New(), "test-job")
+	executor := NewRetryExecutor(config, uuid.New(), "test-jobs")
 
 	callCount := 0
 	task := func() error {
@@ -111,7 +111,7 @@ func TestRetryExecutor_ExecuteWithRetry_RetryableErrors(t *testing.T) {
 		RetryableErrors: []error{temporaryErr},
 	}
 
-	executor := NewRetryExecutor(config, uuid.New(), "test-job")
+	executor := NewRetryExecutor(config, uuid.New(), "test-jobs")
 
 	// Test with persistent error (should not retry) / 测试持久性错误（不应重试）
 	callCount := 0
@@ -135,7 +135,7 @@ func TestRetryExecutor_ExecuteWithRetry_RetryableErrors(t *testing.T) {
 func TestRetryExecutor_ExecuteWithRetry_OnFinalFailure(t *testing.T) {
 	ctx := context.Background()
 	jobID := uuid.New()
-	jobName := "test-job"
+	jobName := "test-jobs"
 
 	callbackCalled := false
 	var callbackJobID uuid.UUID

@@ -15,8 +15,8 @@ func TestRetryEvent(t *testing.T) {
 		EventID:         "test-event-1",
 		OriginalEventID: "original-1",
 		Attempt:         2,
-		StartTime:       startTime,
-		EndTime:         endTime,
+		StartTime:       &startTime,
+		EndTime:         &endTime,
 		NextRetryIn:     10 * time.Second,
 	}
 
@@ -42,7 +42,7 @@ func TestNewRetryEvent(t *testing.T) {
 	endTime := startTime.Add(3 * time.Second)
 	testErr := errors.New("test error")
 
-	event := NewRetryEvent("event-123", "original-456", 1, startTime, endTime, testErr, 15*time.Second)
+	event := NewRetryEvent("event-123", "original-456", 1, &startTime, &endTime, testErr, 15*time.Second)
 
 	if event.EventID != "event-123" {
 		t.Errorf("EventID = %s, want event-123", event.EventID)
@@ -69,7 +69,7 @@ func TestRetryEventMarshalJSON(t *testing.T) {
 	endTime := startTime.Add(5 * time.Second)
 	testErr := errors.New("something went wrong")
 
-	event := NewRetryEvent("event-1", "original-1", 2, startTime, endTime, testErr, 10*time.Second)
+	event := NewRetryEvent("event-1", "original-1", 2, &startTime, &endTime, testErr, 10*time.Second)
 
 	data, err := json.Marshal(event)
 	if err != nil {

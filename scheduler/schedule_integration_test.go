@@ -1,0 +1,753 @@
+//go:build integration
+// +build integration
+
+package scheduler
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"log/slog"
+	"testing"
+	"time"
+
+	"github.com/go-co-op/gocron/v2"
+	"github.com/google/uuid"
+	"github.com/piwriw/go-chrono/common"
+	"github.com/piwriw/go-chrono/jobs"
+	"github.com/piwriw/go-chrono/monitor"
+)
+
+type customJobMonitor struct {
+	jobChan chan JobWatchInterface
+}
+
+func (c customJobMonitor) UpdateJobEvents(jobID uuid.UUID, jobName string, jobnewEvent JobEvent, jobTags ...string) {
+	//TODO implement me
+	panic("implement me")
+}
+
+func (c customJobMonitor) GetJobEvents(jobID string) []JobEvent {
+	//TODO implement me
+	panic("implement me")
+}
+
+type customJobSpec struct {
+	ID string
+}
+
+func (c customJobSpec) GetJobID() string {
+	return c.ID
+}
+
+func (c customJobSpec) GetJobName() string {
+	return "customJobSpec"
+}
+
+func (c customJobSpec) GetStartTime() time.Time {
+	return time.Now()
+}
+
+func (c customJobSpec) GetEndTime() time.Time {
+	return time.Now()
+}
+
+func (c customJobSpec) GetStatus() gocron.JobStatus {
+	return "success"
+}
+
+func (c customJobSpec) GetTags() []string {
+	return []string{}
+}
+
+func (c customJobSpec) Error() error {
+	return errors.New("error")
+}
+
+func (c customJobMonitor) Watch() chan JobWatchInterface {
+	return c.jobChan
+}
+
+func TestTwoJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task2 := func() error {
+		fmt.Println("Task2 executed with parameters:")
+		return nil
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	intervalJob2 := jobs.NewIntervalJob(time.Second*20).
+		Names("TestTwoJob").
+		Task(task2, 12).Watch(func(event common.JobWatchInterface) {
+	})
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob2)
+	if err != nil {
+		t.Fatal(err)
+	}
+	nextRun, err := gocronJob.NextRun()
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestTimeOutJobPanic(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		panic("panic")
+	}
+	name := "Joohwan"
+	intervalJob := jobs.NewIntervalJob(time.Second*20).
+		Names("TestTimeOutJobPanic").
+		AfterJobRunsWithPanic(func(jobID uuid.UUID, jobName string, recoverData any) {
+			fmt.Println("watchFunc", err, name)
+		}).
+		Task(task, 1, 2).Watch(func(event common.JobWatchInterface) {
+		//fmt.Println("StartTime", event.GetStartTime().Format("2006-04-02 15-04-05"),
+		//	"EndTime", event.GetEndTime().Format("2006-04-02 15-04-05"),
+		//	"Duration", event.GetEndTime().Sub(event.GetStartTime()))
+		fmt.Println("watchFunc", event, name)
+	})
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+func TestTimeOutJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	name := "Joohwan"
+	intervalJob := jobs.NewIntervalJob(time.Second*20).
+		Names("TestTimeOutJob").
+		Task(task, 1, 2).
+		Watch(func(event common.JobWatchInterface) {
+			// fmt.Println("StartTime", event.StartTime.Format("2006-01-02 15-04-05"),
+			// 	"EndTime", event.EndTime.Format("2006-01-02 15-04-05"),
+			// 	"Duration", event.EndTime.Sub(event.StartTime))
+			fmt.Println("watchFunc", event, name)
+		})
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestWithNoTimeOutJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	intervalJob := jobs.NewIntervalJob(time.Second*20).
+		Names("TestWithNoTimeOutJob").
+		Task(task, 1, 2).Watch(func(event common.JobWatchInterface) {
+		//fmt.Println("StartTime", event.GetStartTime().Format("2006-04-02 15-04-05"),
+		//	"EndTime", event.GetEndTime().Format("2006-04-02 15-04-05"),
+		//	"Duration", event.GetEndTime().Sub(event.GetStartTime()))
+	})
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+func TestValidateTimeOutJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	intervalJob := jobs.NewIntervalJob(time.Second*20).
+		Names("TestValidateTimeOutJob").
+		Task(task, 1, 2).Watch(func(event common.JobWatchInterface) {
+		//fmt.Println("StartTime", event.GetStartTime().Format("2006-04-02 15-04-05"),
+		//	"EndTime", event.GetEndTime().Format("2006-04-02 15-04-05"),
+		//	"Duration", event.GetEndTime().Sub(event.GetStartTime()))
+	})
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+func TestWatchJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	name := "Joohwan"
+	cronJob := jobs.NewCronJob(jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestWatchJob").
+		Task(task, 1, 2).Watch(func(event common.JobWatchInterface) {
+		fmt.Println("watchFunc", event, name)
+	})
+
+	gocronJob, err := scheduler.AddCronJob(cronJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestMonthlyJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	monthlyJob := jobs.NewMonthJob(1, gocron.NewDaysOfTheMonth(23), gocron.NewAtTimes(gocron.NewAtTime(11, 43, 3))).
+		Names("TestMonthlyJob").
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddMonthlyJob(monthlyJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestWeeklyJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	weeklyJob := jobs.NewWeeklyJob(1, gocron.NewWeekdays(time.Thursday), gocron.NewAtTimes(gocron.NewAtTime(11, 34, 3))).
+		Names("TestWeeklyJob").
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddWeeklyJob(weeklyJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+func TestDailyJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	dailyJob := jobs.NewDailyJob(1, gocron.NewAtTimes(gocron.NewAtTime(19, 40, 3))).
+		Names("TestDailyJob").
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddDailyJob(dailyJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func add(a, b int) {
+	fmt.Println(a + b)
+}
+
+func countdis(a, b int) {
+	fmt.Println(a - b)
+}
+
+func TestIntervalJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	taskErr := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return errors.New("error")
+	}
+	// 定义 funcName
+	a := 1
+	b := 2
+	// 定义 watchFunc
+	watchFunc := func(event common.JobWatchInterface) {
+		fmt.Println("watchFunc", event)
+		add(a, b)
+	}
+	watchFunc2 := func(event common.JobWatchInterface) {
+		fmt.Println("watchFunc2", event)
+		countdis(a, b)
+	}
+	intervalJob := jobs.NewIntervalJob(15*time.Second).
+		Names("TestDurationJob").
+		Watch(watchFunc).
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddIntervalJob(intervalJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	intervalJob2 := jobs.NewIntervalJob(15*time.Second).
+		Names("TestDurationJob2").
+		Watch(watchFunc2).
+		Task(taskErr, 3, 5)
+
+	_, err = scheduler.AddIntervalJob(intervalJob2)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	scheduler.Start()
+	go scheduler.Watch()
+	nextRun, err := gocronJob.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestIntervalJobRe(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	task := func() error {
+		fmt.Println("Task executed start")
+		time.Sleep(30 * time.Second)
+		fmt.Println("Task executed done")
+		return nil
+	}
+
+	onceJob := jobs.NewOnceJob(time.Now().Add(time.Second * 5)).
+		Names("TestOnceJob").
+		Task(task)
+	gocronJob, err := scheduler.AddOnceJob(onceJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	go func() {
+		time.Sleep(10 * time.Second)
+		if err := scheduler.RemoveJob(gocronJob.ID().String()); err != nil {
+			slog.Error(err.Error())
+		}
+	}()
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			jobs, err := scheduler.GetJobs()
+			if err != nil {
+				slog.Error(err.Error())
+			}
+			for _, gocronJob := range jobs {
+				t.Log("jobs", gocronJob.ID(), "TASK NAME", gocronJob.Name())
+			}
+		}
+	}()
+	select {
+	case <-time.After(time.Second * 15):
+	}
+}
+
+func TestOnceJob(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	onceJob := jobs.NewOnceJob(time.Now().Add(time.Minute)).
+		Names("TestOnceJob").
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddOnceJob(onceJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestMonitor(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return nil
+	}
+	cronJob := jobs.NewCronJob(jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestMonitor").
+		Task(task, 1, 2)
+
+	gocronJob, err := scheduler.AddCronJob(cronJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	if err != nil {
+		t.Fatal(err)
+	}
+	go scheduler.Watch()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestDefaultHooks(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	task := func(a, b int) error {
+		fmt.Println("Task executed with parameters:", a, b)
+		return errors.New("some error")
+	}
+	cronJob := jobs.NewCronJob(
+		jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestDefaultHooks").
+		Task(task, 1, 2).
+		DefaultHooks()
+
+	gocronJob, err := scheduler.AddCronJob(cronJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestDayTimeToCron(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		jobs, err := scheduler.GetJobs()
+		if err != nil {
+			fmt.Println(err)
+		}
+		for _, gocronJob := range jobs {
+			// 获取当前任务信息
+			nextRun, lastRun, err := scheduler.GetJobLastAndNextByID(gocronJob.ID().String())
+			if err != nil {
+				t.Fatal(err)
+			}
+			t.Log("TASKID", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+			t.Log("TASKID", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "lastRunTime", lastRun.Format("2006-01-02 15:04:05"))
+		}
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := jobs.NewCronJob(jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Names("TestDayTimeToCron").
+		Task(task, 1, 2).
+		AfterJobRuns(func(jobID uuid.UUID, jobName string) {
+			fmt.Println("AfterJobRuns")
+		}).
+		BeforeJobRuns(func(jobID uuid.UUID, jobName string) {
+			fmt.Println("BeforeJobRuns")
+		}).AfterJobRunsWithError(func(jobID uuid.UUID, jobName string, err error) {
+		fmt.Println("AfterJobRuns")
+	})
+
+	gocronJob, err := scheduler.AddCronJob(cronJob)
+
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestWebMonitor(t *testing.T) {
+	monitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3))
+	scheduler, err := NewScheduler(context.TODO(), monitor, WithWebMonitor("localhost:18080"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := jobs.NewIntervalJob(time.Second*10).
+		Task(task, 1, 2).Names("TestWebMonitor")
+
+	_, err = scheduler.AddIntervalJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestLimit(t *testing.T) {
+	scheduler, err := NewScheduler(context.TODO(), nil, WithLimit(2))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := jobs.NewCronJob(jobs.DayTimeToCron(time.Now().Add(time.Minute*1))).
+		Task(task, 1, 2).Names("TestWebMonitor")
+	_, err = scheduler.AddCronJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	gocronJob, err := scheduler.AddCronJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = scheduler.RemoveJob(gocronJob.ID().String())
+	if err != nil {
+		t.Fatal(err)
+	}
+	gocronJob, err = scheduler.AddCronJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	nextRun, err := gocronJob.NextRun()
+	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestWeb(t *testing.T) {
+	schedMonitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3), monitor.WithEventIDGenerator(monitor.NewTimeEventIDGenerator("20060102150405")))
+	scheduler, err := NewScheduler(context.TODO(), schedMonitor, WithWebMonitor("localhost:28080"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := jobs.NewIntervalJob(time.Second*10).
+		Task(task, 1, 2).Names("TestWebMonitor")
+
+	_, err = scheduler.AddIntervalJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+
+func TestWithPrometheus(t *testing.T) {
+	monitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3))
+	scheduler, err := NewScheduler(context.TODO(),
+		monitor,
+		WithWatch(nil),
+		WithWebMonitor("localhost:38080"),
+		WithPrometheus("localhost:18888"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	cronJob := jobs.NewIntervalJob(time.Second*10).
+		Task(task, 1, 2).Names("TestWebMonitor").Watch(EmptyWatchFunc)
+
+	_, err = scheduler.AddIntervalJob(cronJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	go scheduler.Watch()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
+func TestIntervalJobClient(t *testing.T) {
+	monitor := monitor.NewDefaultSchedulerMonitor(monitor.WithMaxRecords(3))
+	scheduler, err := NewScheduler(context.TODO(),
+		monitor,
+		WithWatch(nil),
+		WithWebMonitor("localhost:48080"),
+		WithPrometheus("localhost:28888"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 添加一个 Cron 任务
+	// Task with a parameter using a closure
+	task := func(a, b int) {
+		fmt.Println("Task executed with parameters:", a, b)
+	}
+	intervalJob := jobs.NewIntervalJob(10*time.Second).
+		Names("TestWebMonitor").
+		Task(task, 1, 2).
+		Watch(EmptyWatchFunc)
+	_, err = scheduler.AddIntervalJob(intervalJob)
+	if err != nil {
+		t.Fatal(err)
+	}
+	scheduler.Start()
+	go scheduler.Watch()
+
+	// block until you are ready to shut down
+	select {
+	case <-time.After(time.Second * 5):
+	}
+}
