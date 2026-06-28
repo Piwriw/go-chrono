@@ -99,17 +99,3 @@ func itoaUint64(n uint64) string {
 	}
 	return string(buf[i:])
 }
-
-// isCompleteWord checks if a string is a complete word (contains only alphabetic characters)
-// isCompleteWord 检查字符串是否是完整单词（仅包含字母）
-func isCompleteWord(s string) bool {
-	if s == "" {
-		return false
-	}
-	for _, c := range s {
-		if !((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z')) {
-			return false
-		}
-	}
-	return true
-}

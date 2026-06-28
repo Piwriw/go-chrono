@@ -13,43 +13,43 @@ import (
 // JobWatchInterface defines the interface for jobs event watching.
 // JobWatchInterface 定义了任务事件监听的接口。
 type JobWatchInterface interface {
-	// GetJobID gets the jobs ID.
+	// GetJobID gets the job ID.
 	// 获取任务 ID。
 	//
 	// Returns:
 	//	string - The jobs ID / 任务 ID
 	GetJobID() string
-	// GetJobName gets the jobs name.
+	// GetJobName gets the job name.
 	// 获取任务名称。
 	//
 	// Returns:
 	//	string - The jobs name / 任务名称
 	GetJobName() string
-	// GetStartTime gets the jobs start time.
+	// GetStartTime gets the job start time.
 	// 获取任务开始时间。
 	//
 	// Returns:
 	//	*time.Time - The start time / 开始时间
 	GetStartTime() *time.Time
-	// GetEndTime gets the jobs end time.
+	// GetEndTime gets the job end time.
 	// 获取任务结束时间。
 	//
 	// Returns:
 	//	*time.Time - The end time / 结束时间
 	GetEndTime() *time.Time
-	// GetStatus gets the jobs status.
+	// GetStatus gets the job status.
 	// 获取任务状态。
 	//
 	// Returns:
 	//	int - The jobs status / 任务状态
 	GetStatus() int
-	// GetTags gets the jobs tags.
+	// GetTags gets the job tags.
 	// 获取任务标签。
 	//
 	// Returns:
 	//	[]string - The jobs tags / 任务标签
 	GetTags() []string
-	// Error gets the jobs error.
+	// Error gets the job error.
 	// 获取任务错误。
 	//
 	// Returns:
@@ -75,10 +75,10 @@ type JobEvent struct {
 	// EndTime is the end time.
 	// EndTime 是结束时间。
 	EndTime *time.Time
-	// Status is the jobs status.
+	// Status is the job status.
 	// Status 是任务状态。
 	Status int
-	// Err is the jobs error.
+	// Err is the job error.
 	// Err 是任务错误。
 	Err error
 	// RetryCount is the number of retry attempts.
@@ -144,7 +144,7 @@ var EmptyAfterJobRunsWithPanic = DefaultAfterJobRunsWithPanic
 // JobOptions holds options for jobs execution.
 // JobOptions 保存任务执行的选项。
 type JobOptions struct {
-	// tags are the jobs tags.
+	// tags are the job tags.
 	// tags 是任务标签。
 	tags []string
 	// retryConfig is the retry configuration.
@@ -230,10 +230,10 @@ func WrapTaskWithRetry(taskFunc func() error, jobID uuid.UUID, jobName string, o
 // Job defines the interface for a jobs.
 // Job 定义了任务的接口。
 type Job interface {
-	// ID returns the jobs ID.
+	// ID returns the job ID.
 	// ID 返回任务 ID。
 	ID() uuid.UUID
-	// Name returns the jobs name.
+	// Name returns the job name.
 	// Name 返回任务名称。
 	Name() string
 }

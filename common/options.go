@@ -1,8 +1,6 @@
 package common
 
 import (
-	"time"
-
 	"github.com/piwriw/go-chrono/retry"
 )
 
@@ -115,9 +113,7 @@ type WatchOption struct {
 	Enabled bool
 	// WatchFunc is the watch function for monitoring jobs events.
 	// WatchFunc 是用于监控任务事件的监听函数。
-	// Use interface{} to avoid circular dependency with monitor package
-	// 使用 interface{} 避免与 monitor 包的循环依赖
-	WatchFunc interface{}
+	WatchFunc func(event JobWatchInterface)
 }
 
 var _ ScheduleOption = &WatchOption{}
@@ -148,9 +144,6 @@ type TimeoutOption struct {
 	// Enabled indicates whether the timeout option is Enabled.
 	// Enabled 表示是否启用超时选项。
 	Enabled bool
-	// timeout is the timeout duration.
-	// timeout 是超时时间。
-	timeout time.Duration
 }
 
 // LimitOption represents the limit option.

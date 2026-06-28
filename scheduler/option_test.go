@@ -6,7 +6,6 @@ import (
 
 	"github.com/piwriw/go-chrono/common"
 
-	"github.com/piwriw/go-chrono/monitor"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +43,6 @@ func TestAliasOption(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -80,7 +78,7 @@ func TestAliasOption(t *testing.T) {
 func TestWatchOption(t *testing.T) {
 	t.Parallel()
 
-	customWatchFunc := func(event monitor.JobWatchInterface) {
+	customWatchFunc := func(event common.JobWatchInterface) {
 		// Custom watch function
 	}
 
@@ -121,7 +119,6 @@ func TestWatchOption(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -202,7 +199,6 @@ func TestWebMonitorOption(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -288,7 +284,6 @@ func TestLimitOption(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -365,7 +360,6 @@ func TestPrometheusOption(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -462,7 +456,6 @@ func TestSchedulerOptionsComposition(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -518,7 +511,6 @@ func TestOptionConstants(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.expected, tt.constant, "constant should match expected value")

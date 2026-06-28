@@ -61,7 +61,6 @@ func TestNewCronJob(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -120,7 +119,6 @@ func TestCronJobCronExpr(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -179,7 +177,6 @@ func TestCronJobAlias(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -233,7 +230,6 @@ func TestCronJobJobID(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -289,7 +285,6 @@ func TestCronJobNames(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -362,7 +357,6 @@ func TestCronJobTag(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -447,7 +441,6 @@ func TestCronJobTask(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -514,7 +507,6 @@ func TestCronJobWatch(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -572,7 +564,6 @@ func TestCronJobDefaultHooks(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -582,7 +573,7 @@ func TestCronJobDefaultHooks(t *testing.T) {
 
 			// Add initial hooks using exported BeforeJobRuns/AfterJobRuns methods
 			// 使用导出的 BeforeJobRuns/AfterJobRuns 方法添加初始钩子
-			for i := 0; i < tt.initialHookCount; i++ {
+			for range tt.initialHookCount {
 				job.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {})
 			}
 
@@ -768,7 +759,6 @@ func TestDayTimeToCronUtil(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -843,7 +833,6 @@ func TestWeekTimeToCronUtil(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -918,7 +907,6 @@ func TestMonthTimeToCronUtil(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
@@ -986,7 +974,6 @@ func TestTimeTypeConstants(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		tt := tt
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 			assert.Equal(t, tt.expected, tt.constant, "constant should match expected value")
@@ -1002,7 +989,7 @@ func BenchmarkNewCronJob(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = jobs.NewCronJob(expr)
 	}
 }
@@ -1015,7 +1002,7 @@ func BenchmarkDayTimeToCron(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = jobs.DayTimeToCron(t)
 	}
 }

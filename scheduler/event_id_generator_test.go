@@ -54,7 +54,7 @@ func TestUUIDEventIDGenerator(t *testing.T) {
 		ids := make(map[string]bool)
 		iterations := 100
 
-		for i := 0; i < iterations; i++ {
+		for range iterations {
 			eventID := generator.NextID(jobSpec)
 			// Check uniqueness
 			// 检查唯一性
@@ -103,7 +103,7 @@ func TestUUIDEventIDGenerator(t *testing.T) {
 		var wg sync.WaitGroup
 		ids := make(chan string, goroutines*callsPerGoroutine)
 
-		for i := 0; i < goroutines; i++ {
+		for range goroutines {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -258,7 +258,7 @@ func TestTimeEventIDGenerator(t *testing.T) {
 		var wg sync.WaitGroup
 		ids := make(chan string, goroutines*callsPerGoroutine)
 
-		for i := 0; i < goroutines; i++ {
+		for range goroutines {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -301,7 +301,7 @@ func BenchmarkUUIDEventIDGenerator(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = generator.NextID(jobSpec)
 	}
 }
@@ -319,7 +319,7 @@ func BenchmarkTimeEventIDGenerator(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_ = generator.NextID(jobSpec)
 	}
 }

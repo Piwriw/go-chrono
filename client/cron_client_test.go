@@ -493,7 +493,7 @@ func TestCronJobClientThreadSafety(t *testing.T) {
 
 	// Start multiple goroutines calling methods concurrently
 	// 启动多个 goroutine 并发调用方法
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		go func() {
 			client.CronExpr("* * * * *")
 			client.Alias("test")
@@ -506,7 +506,7 @@ func TestCronJobClientThreadSafety(t *testing.T) {
 
 	// Wait for all goroutines to complete
 	// 等待所有 goroutine 完成
-	for i := 0; i < 10; i++ {
+	for range 10 {
 		<-done
 	}
 

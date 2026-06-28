@@ -25,7 +25,7 @@ func NewGocronJobWrapper(job gocron.Job) *GocronJobWrapper {
 	return &GocronJobWrapper{job: job}
 }
 
-// ID returns the jobs ID.
+// ID returns the job ID.
 // ID 返回任务 ID。
 //
 // Returns:
@@ -35,7 +35,7 @@ func (w *GocronJobWrapper) ID() uuid.UUID {
 	return w.job.ID()
 }
 
-// Name returns the jobs name.
+// Name returns the job name.
 // Name 返回任务名称。
 //
 // Returns:
@@ -45,7 +45,7 @@ func (w *GocronJobWrapper) Name() string {
 	return w.job.Name()
 }
 
-// GetJobID returns the jobs ID as string.
+// GetJobID returns the job ID as string.
 // GetJobID 返回任务ID字符串。
 //
 // Returns:
@@ -55,7 +55,7 @@ func (w *GocronJobWrapper) GetJobID() string {
 	return w.job.ID().String()
 }
 
-// GetJobName returns the jobs name.
+// GetJobName returns the job name.
 // GetJobName 返回任务名称。
 //
 // Returns:

@@ -202,7 +202,7 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 
 		jobID := "test-limit-jobs"
 		// Add 5 retry events
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			event := &retry.RetryEvent{
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
@@ -229,7 +229,7 @@ func TestSchedulerMonitorRetryMethods(t *testing.T) {
 
 		jobID := "test-zero-jobs"
 		// Add 15 retry events (more than default 10)
-		for i := 0; i < 15; i++ {
+		for i := range 15 {
 			event := &retry.RetryEvent{
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,

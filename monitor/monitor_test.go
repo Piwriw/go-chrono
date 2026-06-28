@@ -146,7 +146,7 @@ func TestIncrementJob(t *testing.T) {
 		const incrementsPerGoroutine = 10
 
 		var wg sync.WaitGroup
-		for i := 0; i < goroutines; i++ {
+		for range goroutines {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -196,7 +196,7 @@ func TestRecordJobTiming(t *testing.T) {
 		jobName := "multi-timing-jobs"
 		tags := []string{"multi"}
 
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			startTime := time.Now().Add(-time.Duration(i+1) * time.Second)
 			endTime := time.Now()
 			monitor.RecordJobTiming(startTime, endTime, jobID, jobName, tags)
@@ -235,7 +235,7 @@ func TestRecordJobTiming(t *testing.T) {
 		const recordingsPerGoroutine = 10
 
 		var wg sync.WaitGroup
-		for i := 0; i < goroutines; i++ {
+		for range goroutines {
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
@@ -359,7 +359,7 @@ func TestRecordJobTimingWithStatus(t *testing.T) {
 		// Record multiple events
 		// 记录多个事件
 		eventIDs := make(map[string]bool)
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			startTime := time.Now()
 			endTime := time.Now().Add(10 * time.Millisecond)
 			monitor.RecordJobTimingWithStatus(startTime, endTime, jobID, jobName, tags, gocron.Success, nil)
@@ -419,7 +419,7 @@ func TestUpdateJobEvents(t *testing.T) {
 		jobName := "append-jobs"
 		tags := []string{"append"}
 
-		for i := 0; i < maxRecords; i++ {
+		for i := range maxRecords {
 			newEvent := &JobEvent{
 				EventID:   "event-" + string(rune('A'+i)),
 				StartTime: func() *time.Time { t := time.Now(); return &t }(),
@@ -604,7 +604,7 @@ func TestWatch(t *testing.T) {
 
 		// Default capacity is 100
 		// 默认容量是100
-		for i := 0; i < 100; i++ {
+		for i := range 100 {
 			select {
 			case channel <- &MonitorJobSpec{}:
 				// OK
@@ -812,7 +812,7 @@ func BenchmarkIncrementJob(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		monitor.IncrementJob(jobID, jobName, tags, gocron.Success)
 	}
 }
@@ -830,7 +830,7 @@ func BenchmarkRecordJobTiming(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		monitor.RecordJobTiming(startTime, endTime, jobID, jobName, tags)
 	}
 }
@@ -846,7 +846,7 @@ func BenchmarkUpdateJobEvents(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for i := range b.N {
 		newEvent := &JobEvent{
 			EventID:   "event-" + string(rune('0'+i%10)),
 			StartTime: func() *time.Time { t := time.Now(); return &t }(),
@@ -997,7 +997,7 @@ func TestRecordRetryEvent(t *testing.T) {
 
 		// Add multiple retry events
 		// 添加多个重试事件
-		for i := 0; i < 5; i++ {
+		for i := range 5 {
 			event := &retry.RetryEvent{
 				EventID:         fmt.Sprintf("retry-%d", i),
 				OriginalEventID: jobID,
@@ -1068,7 +1068,7 @@ func TestUpdateJobEventsConcurrency(t *testing.T) {
 		const updatesPerGoroutine = 20
 
 		var wg sync.WaitGroup
-		for i := 0; i < goroutines; i++ {
+		for i := range goroutines {
 			wg.Add(1)
 			go func(index int) {
 				defer wg.Done()

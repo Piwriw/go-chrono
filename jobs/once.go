@@ -16,7 +16,7 @@ type OnceJob struct {
 	// ID is the unique identifier for the jobs.
 	// ID 是任务的唯一标识符。
 	ID string
-	// Type is the jobs type.
+	// Type is the job type.
 	// Type 是任务的类型。
 	Type JobType
 	// Ali is the alias for the jobs.

@@ -27,43 +27,43 @@ var defaultEventIDGenerator = &UUIDEventIDGenerator{}
 // JobWatchInterface defines the interface for jobs event watching.
 // JobWatchInterface 定义了任务事件监听的接口。
 type JobWatchInterface interface {
-	// GetJobID gets the jobs ID.
+	// GetJobID gets the job ID.
 	// 获取任务 ID。
 	//
 	// Returns:
 	//	string - The jobs ID / 任务 ID
 	GetJobID() string
-	// GetJobName gets the jobs name.
+	// GetJobName gets the job name.
 	// 获取任务名称。
 	//
 	// Returns:
 	//	string - The jobs name / 任务名称
 	GetJobName() string
-	// GetStartTime gets the jobs start time.
+	// GetStartTime gets the job start time.
 	// 获取任务开始时间。
 	//
 	// Returns:
 	//	*time.Time - The start time / 开始时间
 	GetStartTime() *time.Time
-	// GetEndTime gets the jobs end time.
+	// GetEndTime gets the job end time.
 	// 获取任务结束时间。
 	//
 	// Returns:
 	//	*time.Time - The end time / 结束时间
 	GetEndTime() *time.Time
-	// GetStatus gets the jobs status.
+	// GetStatus gets the job status.
 	// 获取任务状态。
 	//
 	// Returns:
 	//	gocron.JobStatus - The jobs status / 任务状态
 	GetStatus() gocron.JobStatus
-	// GetTags gets the jobs tags.
+	// GetTags gets the job tags.
 	// 获取任务标签。
 	//
 	// Returns:
 	//	[]string - The jobs tags / 任务标签
 	GetTags() []string
-	// Error gets the jobs error.
+	// Error gets the job error.
 	// 获取任务错误。
 	//
 	// Returns:
@@ -141,7 +141,7 @@ type defaultSchedulerMonitor struct {
 	// maxRecords is the maximum number of jobs event records to keep.
 	// maxRecords 是保留的任务事件记录的最大数量。
 	maxRecords int
-	// jobRecord stores the jobs specifications and events.
+	// jobRecord stores the job specifications and events.
 	// jobRecord 存储任务规范和事件。
 	jobRecord map[string]MonitorJobSpec
 	// eventIDCli is the event ID generator.
@@ -347,7 +347,7 @@ func (s *defaultSchedulerMonitor) RecordRetryEvent(event *retry.RetryEvent) {
 // MonitorJobSpec represents the specification of a monitored jobs.
 // MonitorJobSpec 表示被监控任务的规范。
 type MonitorJobSpec struct {
-	// JobSpec is the jobs specification.
+	// JobSpec is the job specification.
 	// JobSpec 是任务规范。
 	JobSpec JobSpec
 	// JobEvents is the list of jobs events.
@@ -358,18 +358,18 @@ type MonitorJobSpec struct {
 // JobSpec represents the specification of a jobs.
 // JobSpec 表示任务的规范。
 type JobSpec struct {
-	// JobID is the jobs ID.
+	// JobID is the job ID.
 	// JobID 是任务 ID。
 	JobID string
-	// JobName is the jobs name.
+	// JobName is the job name.
 	// JobName 是任务名称。
 	JobName string
-	// Tags are the jobs tags.
+	// Tags are the job tags.
 	// Tags 是任务标签。
 	Tags []string
 }
 
-// GetJobID gets the jobs ID.
+// GetJobID gets the job ID.
 // GetJobID 获取任务 ID。
 //
 // Returns:
@@ -379,7 +379,7 @@ func (m MonitorJobSpec) GetJobID() string {
 	return m.JobSpec.JobID
 }
 
-// GetJobName gets the jobs name.
+// GetJobName gets the job name.
 // GetJobName 获取任务名称。
 //
 // Returns:
@@ -402,7 +402,7 @@ func (m MonitorJobSpec) GetCurrentEvent() *JobEvent {
 	return m.JobEvents[len(m.JobEvents)-1]
 }
 
-// Error gets the jobs error.
+// Error gets the job error.
 // Error 获取任务错误。
 //
 // Returns:
@@ -415,7 +415,7 @@ func (m MonitorJobSpec) Error() error {
 	return m.JobEvents[len(m.JobEvents)-1].Err
 }
 
-// GetStartTime gets the jobs start time.
+// GetStartTime gets the job start time.
 // GetStartTime 获取任务开始时间。
 //
 // Returns:
@@ -428,7 +428,7 @@ func (m MonitorJobSpec) GetStartTime() *time.Time {
 	return m.JobEvents[len(m.JobEvents)-1].StartTime
 }
 
-// GetEndTime gets the jobs end time.
+// GetEndTime gets the job end time.
 // GetEndTime 获取任务结束时间。
 //
 // Returns:
@@ -441,7 +441,7 @@ func (m MonitorJobSpec) GetEndTime() *time.Time {
 	return m.JobEvents[len(m.JobEvents)-1].EndTime
 }
 
-// GetStatus gets the jobs status.
+// GetStatus gets the job status.
 // GetStatus 获取任务状态。
 //
 // Returns:
@@ -468,10 +468,10 @@ type JobEvent struct {
 	// EndTime is the end time.
 	// EndTime 是结束时间。
 	EndTime *time.Time
-	// Status is the jobs status.
+	// Status is the job status.
 	// Status 是任务状态。
 	Status gocron.JobStatus
-	// Err is the jobs error.
+	// Err is the job error.
 	// Err 是任务错误。
 	Err error
 
@@ -534,7 +534,7 @@ func (m JobEvent) MarshalJSON() ([]byte, error) {
 	})
 }
 
-// GetStartTime gets the jobs start time.
+// GetStartTime gets the job start time.
 // GetStartTime 获取任务开始时间。
 //
 // Returns:
@@ -544,7 +544,7 @@ func (m JobEvent) GetStartTime() *time.Time {
 	return m.StartTime
 }
 
-// GetEndTime gets the jobs end time.
+// GetEndTime gets the job end time.
 // GetEndTime 获取任务结束时间。
 //
 // Returns:
@@ -554,7 +554,7 @@ func (m JobEvent) GetEndTime() *time.Time {
 	return m.EndTime
 }
 
-// GetStatus gets the jobs status.
+// GetStatus gets the job status.
 // GetStatus 获取任务状态。
 //
 // Returns:
@@ -578,7 +578,7 @@ func (m JobEvent) GetSpendTime() int64 {
 	return m.EndTime.UnixMilli() - m.StartTime.UnixMilli()
 }
 
-// GetTags gets the jobs tags.
+// GetTags gets the job tags.
 // GetTags 获取任务标签。
 //
 // Returns:
@@ -588,7 +588,7 @@ func (m MonitorJobSpec) GetTags() []string {
 	return m.JobSpec.Tags
 }
 
-// GetError gets the jobs error.
+// GetError gets the job error.
 // GetError 获取任务错误。
 //
 // Returns:

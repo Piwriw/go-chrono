@@ -7,7 +7,6 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/piwriw/go-chrono/common"
@@ -19,7 +18,6 @@ type WebMonitor struct {
 	scheduleMonitor SchedulerMonitor
 	addr            string
 	server          *http.Server
-	mu              sync.Mutex
 }
 
 func NewWebMonitor(s common.SchedulerInterface, m SchedulerMonitor, addr string) *WebMonitor {

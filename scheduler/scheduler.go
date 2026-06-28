@@ -15,7 +15,7 @@ import (
 	"github.com/piwriw/go-chrono/retry"
 )
 
-var defaultWatch = EmptyWatchFuncMonitor
+var defaultWatch = WatchFuncAdapter(EmptyWatchFunc)
 
 var DefaultScheduler *Scheduler
 
@@ -87,8 +87,6 @@ type SchedulerOptions struct {
 	// Watch option
 	// 监听选项
 	watch *common.WatchOption
-	// Timeout option
-	timeout *common.TimeoutOption
 	// WebMonitor option
 	webMonitor *common.WebMonitorOption
 	// Limit option
@@ -146,13 +144,13 @@ func WithAliasMode() SchedulerOption {
 
 // WithWatch sets the watch option.
 // WithWatch 设置监听选项。
-func WithWatch(watchFunc func(event monitor.JobWatchInterface)) SchedulerOption {
+func WithWatch(watchFunc func(event common.JobWatchInterface)) SchedulerOption {
 	return func(s *SchedulerOptions) {
 		if watchFunc != nil {
 			s.watch = &common.WatchOption{Enabled: true, WatchFunc: watchFunc}
 			return
 		}
-		s.watch = &common.WatchOption{Enabled: true, WatchFunc: defaultWatch}
+		s.watch = &common.WatchOption{Enabled: true, WatchFunc: EmptyWatchFunc}
 	}
 }
 
@@ -245,7 +243,7 @@ type Event struct {
 	Err error
 }
 
-// GetJobID returns the jobs ID.
+// GetJobID returns the job ID.
 // GetJobID 返回任务ID。
 //
 // Returns:
@@ -255,7 +253,7 @@ func (e Event) GetJobID() string {
 	return e.JobID
 }
 
-// GetJobName returns the jobs name.
+// GetJobName returns the job name.
 // GetJobName 返回任务名称。
 //
 // Returns:
@@ -357,7 +355,7 @@ type jobWatchAdapter struct {
 	event monitor.JobWatchInterface
 }
 
-// GetJobID gets the jobs ID.
+// GetJobID gets the job ID.
 // 获取任务 ID。
 //
 // Returns:
@@ -367,7 +365,7 @@ func (a *jobWatchAdapter) GetJobID() string {
 	return a.event.GetJobID()
 }
 
-// GetJobName gets the jobs name.
+// GetJobName gets the job name.
 // 获取任务名称。
 //
 // Returns:
@@ -377,7 +375,7 @@ func (a *jobWatchAdapter) GetJobName() string {
 	return a.event.GetJobName()
 }
 
-// GetStartTime gets the jobs start time.
+// GetStartTime gets the job start time.
 // 获取任务开始时间。
 //
 // Returns:
@@ -387,7 +385,7 @@ func (a *jobWatchAdapter) GetStartTime() *time.Time {
 	return a.event.GetStartTime()
 }
 
-// GetEndTime gets the jobs end time.
+// GetEndTime gets the job end time.
 // 获取任务结束时间。
 //
 // Returns:
@@ -397,7 +395,7 @@ func (a *jobWatchAdapter) GetEndTime() *time.Time {
 	return a.event.GetEndTime()
 }
 
-// GetStatus gets the jobs status.
+// GetStatus gets the job status.
 // 获取任务状态。
 //
 // Returns:
@@ -416,7 +414,7 @@ func (a *jobWatchAdapter) GetStatus() int {
 	}
 }
 
-// GetTags gets the jobs tags.
+// GetTags gets the job tags.
 // 获取任务标签。
 //
 // Returns:
@@ -426,7 +424,7 @@ func (a *jobWatchAdapter) GetTags() []string {
 	return a.event.GetTags()
 }
 
-// Error gets the jobs error.
+// Error gets the job error.
 // 获取任务错误。
 //
 // Returns:
@@ -1008,19 +1006,15 @@ func (s *Scheduler) getWatchFunc(jobID string) (func(event monitor.JobWatchInter
 }
 
 // schedulerWatchFunc returns the scheduler-level watch function configured via
-// WithWatch. It panics-safe-casts the stored interface{}; on type mismatch it
-// returns the empty watch function so the jobs still emits events.
-// schedulerWatchFunc 返回通过 WithWatch 配置的调度器级监听函数。
-// 当存储值的类型不匹配时返回空函数,以保证任务事件仍能正常发送。
+// WithWatch, adapted to the monitor.JobWatchInterface signature used internally.
+// It falls back to defaultWatch when none is set.
+// schedulerWatchFunc 返回通过 WithWatch 配置的调度器级监听函数,
+// 适配为内部使用的 monitor.JobWatchInterface 签名,未配置时返回默认监听函数。
 func (s *Scheduler) schedulerWatchFunc() func(event monitor.JobWatchInterface) {
 	if s.schOptions == nil || s.schOptions.watch == nil || s.schOptions.watch.WatchFunc == nil {
 		return defaultWatch
 	}
-	fn, ok := s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface))
-	if !ok || fn == nil {
-		return defaultWatch
-	}
-	return fn
+	return WatchFuncAdapter(s.schOptions.watch.WatchFunc)
 }
 
 // CheckLimit checks if a new jobs can be added under the configured limit.

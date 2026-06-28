@@ -178,7 +178,7 @@ func TestJitterPolicy(t *testing.T) {
 
 		// Multiple tests ensure randomness is within reasonable range
 		// 多次测试确保随机性在合理范围内
-		for i := 0; i < 10; i++ {
+		for range 10 {
 			got := policy.NextRetry(0, errors.New("test"))
 			if got < minJitter || got > maxJitter {
 				t.Errorf("NextRetry() = %v, want between %v and %v",

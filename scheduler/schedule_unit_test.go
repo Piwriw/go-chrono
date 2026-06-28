@@ -81,7 +81,7 @@ func TestNewScheduler(t *testing.T) {
 	t.Run("creates scheduler with watch option", func(t *testing.T) {
 		t.Parallel()
 
-		watchFunc := func(event monitor.JobWatchInterface) {}
+		watchFunc := func(event common.JobWatchInterface) {}
 		scheduler, err := NewScheduler(context.Background(), nil, WithWatch(watchFunc))
 
 		require.NoError(t, err, "should create scheduler without error")
@@ -225,7 +225,7 @@ func TestScheduler_AddJobType(t *testing.T) {
 		jobTypes := []jobs.JobType{jobs.JobTypeOnce, jobs.JobTypeCron, jobs.JobTypeDaily, jobs.JobTypeWeekly, jobs.JobTypeMonthly, jobs.JobInterval}
 
 		var wg sync.WaitGroup
-		for i := 0; i < goroutines; i++ {
+		for i := range goroutines {
 			wg.Add(1)
 			go func(idx int) {
 				defer wg.Done()
@@ -1038,7 +1038,7 @@ func BenchmarkNewScheduler(b *testing.B) {
 	b.ResetTimer()
 	b.ReportAllocs()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		_, _ = NewScheduler(ctx, monitor)
 	}
 }

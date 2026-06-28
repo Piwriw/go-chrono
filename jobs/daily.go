@@ -14,7 +14,7 @@ import (
 type DailyJob struct {
 	// ID is the unique identifier for the jobs / 任务的唯一标识符
 	ID string
-	// Type is the jobs type / 任务的类型
+	// Type is the job type / 任务的类型
 	Type JobType
 	// Ali is the alias for the jobs / 任务的别名
 	Ali string
