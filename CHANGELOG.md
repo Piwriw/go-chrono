@@ -5,6 +5,47 @@ All notable changes to go-chrono will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2026-06-28
+
+### Changed
+
+- **WatchFunc Type Safety** - `WatchOption.WatchFunc` changed from `interface{}` to a concrete
+  `func(common.JobWatchInterface)` for compile-time type checking (breaking)
+- **Start() Signature** - `Scheduler.Start()` now returns `error` instead of panicking
+  on init failure (breaking)
+- **WithWatch Parameter** - Accepts `func(common.JobWatchInterface)` rather than a generic
+  function value (breaking)
+- **Modernization** - Adopted Go 1.22+ loop semantics: removed redundant `tt := tt`
+  copies and converted classic `for i := 0; i < N; i++` loops to `for range`
+
+### Removed
+
+- **Dead Code** - Dropped unused helpers and fields:
+  - `monitor.isCompleteWord`
+  - `common.TimeoutOption.timeout` field and now-orphaned `time` import
+  - `SchedulerOptions.timeout` field
+  - `WebMonitor.mu` field and now-orphaned `sync` import
+- **Backup Files** - Deleted `jobs/cron.go.bak`
+
+### Fixed
+
+- **Retry Mechanism (P0)** - `WrapTaskWithRetry` is now wired into all `Add*Job` paths
+  so per-job and global `WithRetry` configurations actually take effect
+- **OnceJob Chaining (P0)** - `AtTimes` returns the receiver for method chaining
+  instead of `nil`
+- **Prometheus Metrics (P0)** - `/metrics` now exposes `chrono_*` gauges and counters
+  via `promhttp.HandlerFor` bound to the private registry
+- **RemoveJobByName (P0)** - No longer reports "not found" when deletion succeeds,
+  and avoids a duplicate `removeJobType` call
+- **Concurrency (P1)** - Split the single `s.mu` into `aliasMu` / `watchMu` / `limitMu`
+  and routed every read through `getJobIDByAlias` / `getWatchFunc` helpers; `CheckLimit`
+  is now atomic (check + decrement) and `releaseLimitSlot` no longer underflows
+- **Event ID Uniqueness** - `TimeEventIDGenerator` no longer emits duplicate IDs under
+  concurrency thanks to a monotonic atomic counter suffix
+- **Incidental Fixes** - `RecordJobTimingWithStatus` deadlock, `WithMaxRecords`
+  parameter validation, missing `maxRecords` initialization in
+  `NewDefaultSchedulerMonitor`, and `GetJobByIDOrAlias` alias/jobID confusion
+
 ## [Unreleased] - 2025-01-18
 
 ### Added
