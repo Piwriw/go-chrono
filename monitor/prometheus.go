@@ -27,11 +27,24 @@ func GetRegistry() *prometheus.Registry {
 	return registry
 }
 
-func StartPrometheusEndpoint(addr string) {
+// StartPrometheusEndpoint starts the HTTP endpoint that exposes Prometheus metrics.
+// StartPrometheusEndpoint 启动暴露 Prometheus 指标的 HTTP 端点。
+//
+// Parameters:
+//
+//	addr - The address to listen on / 监听地址
+//
+// Returns:
+//
+//	error - Error if the address is invalid / 当地址非法时返回错误
+func StartPrometheusEndpoint(addr string) error {
 	if err := url.ValidateURLAddr(addr); err != nil {
-		panic(err)
+		return fmt.Errorf("chrono:invalid prometheus address: %w", err)
 	}
-	http.Handle("/metrics", promhttp.Handler())
+	// Use the private registry so only chrono metrics are exposed.
+	// 使用私有 registry,只暴露 chrono 的指标。
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{Registry: registry}))
 	// 打印访问地址
 	host := addr
 	if strings.HasPrefix(host, ":") {
@@ -40,10 +53,11 @@ func StartPrometheusEndpoint(addr string) {
 	slog.Info("Prometheus metrics endpoint started", "address", fmt.Sprintf("http://%s/metrics", host))
 
 	go func() {
-		if err := http.ListenAndServe(addr, nil); err != nil {
-			slog.Error("StartPrometheusEndpoint is failed", slog.Any("err", err))
+		if err := http.ListenAndServe(addr, mux); err != nil {
+			slog.Error("StartPrometheusEndpoint failed", slog.Any("err", err))
 		}
 	}()
+	return nil
 }
 
 var (

@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/google/uuid"
@@ -25,6 +26,7 @@ func (g *UUIDEventIDGenerator) NextID(_ JobSpec) string {
 // 时间戳格式：20060102150405
 type TimeEventIDGenerator struct {
 	timeFormat string
+	counter    atomic.Uint64
 }
 
 var _ EventIDGenerator = &TimeEventIDGenerator{}
@@ -63,14 +65,39 @@ func (g *TimeEventIDGenerator) NextID(jobSpec JobSpec) string {
 	}
 	b.WriteString(jobName)
 	b.WriteByte('_')
+	now := time.Now()
 	if g.timeFormat != "" {
-		b.WriteString(time.Now().Format(g.timeFormat))
+		b.WriteString(now.Format(g.timeFormat))
 	}
 	// Add nanosecond precision for uniqueness
 	// 添加纳秒精度以确保唯一性
-	b.WriteString(time.Now().Format("20060102150405"))
-	b.WriteString(time.Now().Format(".000000000"))
+	b.WriteString(now.Format("20060102150405"))
+	b.WriteString(now.Format(".000000000"))
+	// Append monotonic counter to guarantee uniqueness under concurrency:
+	// multiple goroutines may produce the same timestamp within the same nanosecond.
+	// 追加单调递增计数器以确保并发下的唯一性：
+	// 多个 goroutine 可能在同一纳秒内产生相同的时间戳。
+	b.WriteByte('_')
+	b.WriteString(itoaUint64(g.counter.Add(1)))
 	return b.String()
+}
+
+// itoaUint64 converts a uint64 to its decimal string representation without using strconv,
+	// avoiding the import just for this one call site.
+// itoaUint64 将 uint64 转换为十进制字符串表示，不使用 strconv，
+// 避免仅为这一处调用而引入额外的包。
+func itoaUint64(n uint64) string {
+	if n == 0 {
+		return "0"
+	}
+	var buf [20]byte
+	i := len(buf)
+	for n > 0 {
+		i--
+		buf[i] = byte('0' + n%10)
+		n /= 10
+	}
+	return string(buf[i:])
 }
 
 // isCompleteWord checks if a string is a complete word (contains only alphabetic characters)

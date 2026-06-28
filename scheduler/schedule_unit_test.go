@@ -542,7 +542,7 @@ func TestScheduler_IncLimit(t *testing.T) {
 
 		scheduler, _ := NewScheduler(context.Background(), nil)
 
-		err := scheduler.incLimit()
+		err := scheduler.releaseLimitSlot()
 		assert.Error(t, err, "should return error when limit is disabled")
 		assert.Equal(t, common.ErrDisEnableLimit, err, "error should be jobs.ErrDisEnableLimit")
 	})
@@ -553,25 +553,26 @@ func TestScheduler_IncLimit(t *testing.T) {
 		initialLimit := 10
 		scheduler, _ := NewScheduler(context.Background(), nil, WithLimit(initialLimit))
 
-		err := scheduler.incLimit()
-		assert.NoError(t, err, "should increment limit without error")
+		err := scheduler.releaseLimitSlot()
+		assert.NoError(t, err, "should release slot without error")
 		assert.Equal(t, initialLimit+1, scheduler.schOptions.limit.Limit, "limit should be incremented")
 	})
 }
 
-// TestScheduler_DecLimit tests the decLimit method.
-// TestScheduler_DecLimit 测试 decLimit 方法。
+// TestScheduler_DecLimit tests the CheckLimit method.
+// TestScheduler_DecLimit 测试 CheckLimit 方法。
 func TestScheduler_DecLimit(t *testing.T) {
 	t.Parallel()
 
-	t.Run("returns error when limit option is disabled", func(t *testing.T) {
+	t.Run("returns false when limit option is disabled", func(t *testing.T) {
 		t.Parallel()
 
 		scheduler, _ := NewScheduler(context.Background(), nil)
 
-		err := scheduler.decLimit()
-		assert.Error(t, err, "should return error when limit is disabled")
-		assert.Equal(t, common.ErrDisEnableLimit, err, "error should be jobs.ErrDisEnableLimit")
+		// CheckLimit returns true when limit is disabled (treated as unlimited).
+		// 未启用 limit 时 CheckLimit 返回 true(视为无限制)。
+		got := scheduler.CheckLimit()
+		assert.True(t, got, "should return true when limit is disabled")
 	})
 
 	t.Run("decrements limit successfully", func(t *testing.T) {
@@ -580,8 +581,8 @@ func TestScheduler_DecLimit(t *testing.T) {
 		initialLimit := 10
 		scheduler, _ := NewScheduler(context.Background(), nil, WithLimit(initialLimit))
 
-		err := scheduler.decLimit()
-		assert.NoError(t, err, "should decrement limit without error")
+		got := scheduler.CheckLimit()
+		assert.True(t, got, "should allow add when limit > 0")
 		assert.Equal(t, initialLimit-1, scheduler.schOptions.limit.Limit, "limit should be decremented")
 	})
 }
@@ -958,7 +959,9 @@ func TestScheduler_StartAndStop(t *testing.T) {
 
 		// Start scheduler
 		// 启动调度器
-		scheduler.Start()
+		if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 
 		// Stop scheduler
 		// 停止调度器
@@ -1040,23 +1043,19 @@ func BenchmarkNewScheduler(b *testing.B) {
 	}
 }
 
-// ExampleNewScheduler demonstrates the usage of NewScheduler.
-// ExampleNewScheduler 展示 NewScheduler 的使用方法。
-func ExampleNewScheduler() {
+// TestNewScheduler_Demo demonstrates the usage of NewScheduler.
+// TestNewScheduler_Demo 展示 NewScheduler 的使用方法。
+func TestNewScheduler_Demo(t *testing.T) {
 	// Create a new scheduler with context and monitor
 	// 创建一个带有上下文和监控器的新调度器
 	ctx := context.Background()
-	monitor := monitor.NewDefaultSchedulerMonitor()
-	scheduler, err := NewScheduler(ctx, monitor, WithAliasMode(), WithLimit(100))
-
-	if err != nil {
-		panic(err)
-	}
+	mon := monitor.NewDefaultSchedulerMonitor()
+	scheduler, err := NewScheduler(ctx, mon, WithAliasMode(), WithLimit(100))
+	require.NoError(t, err)
 
 	// Check if alias option is enabled
 	// 检查别名选项是否启用
-	println(scheduler.Enable(common.AliasOptionName))
-	// Output: true
+	assert.True(t, scheduler.Enable(common.AliasOptionName), "alias option should be enabled")
 
 	// Stop the scheduler when done
 	// 完成时停止调度器

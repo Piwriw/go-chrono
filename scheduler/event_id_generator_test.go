@@ -167,10 +167,10 @@ func TestTimeEventIDGenerator(t *testing.T) {
 		timestampPart := strings.TrimPrefix(eventID, expectedPrefix)
 		assert.NotEmpty(t, timestampPart, "timestamp part should not be empty")
 
-		// Verify timestamp format (default: 20060102150405.000000000)
-		// 验证时间戳格式（默认：20060102150405.000000000）
-		timestampRegex := regexp.MustCompile(`^\d{14}\.\d{9}$`)
-		assert.True(t, timestampRegex.MatchString(timestampPart), "timestamp should match format YYYYMMDDHHmmss.nnnnnnnnn")
+		// Verify timestamp format (default: 20060102150405.000000000), with optional counter suffix for concurrency safety
+		// 验证时间戳格式（默认：20060102150405.000000000），并允许为了并发安全追加可选的计数器后缀
+		timestampRegex := regexp.MustCompile(`^\d{14}\.\d{9}(_\d+)?$`)
+		assert.True(t, timestampRegex.MatchString(timestampPart), "timestamp should match format YYYYMMDDHHmmss.nnnnnnnnn with optional counter suffix")
 	})
 
 	t.Run("generates ID with custom time format", func(t *testing.T) {
@@ -324,9 +324,9 @@ func BenchmarkTimeEventIDGenerator(b *testing.B) {
 	}
 }
 
-// ExampleUUIDEventIDGenerator demonstrates the usage of UUIDEventIDGenerator.
-// ExampleUUIDEventIDGenerator 展示 UUIDEventIDGenerator 的使用方法。
-func ExampleUUIDEventIDGenerator() {
+// TestUUIDEventIDGenerator_Demo demonstrates the usage of UUIDEventIDGenerator.
+// TestUUIDEventIDGenerator_Demo 展示 UUIDEventIDGenerator 的使用方法。
+func TestUUIDEventIDGenerator_Demo(t *testing.T) {
 	generator := &monitor.UUIDEventIDGenerator{}
 	jobSpec := monitor.JobSpec{
 		JobID:   "my-jobs-123",
@@ -335,13 +335,12 @@ func ExampleUUIDEventIDGenerator() {
 	}
 
 	eventID := generator.NextID(jobSpec)
-	println(eventID)
-	// Output: (a valid UUID string, e.g., 550e8400-e29b-41d4-a716-446655440000)
+	assert.NotEmpty(t, eventID, "UUID event ID should not be empty")
 }
 
-// ExampleTimeEventIDGenerator demonstrates the usage of TimeEventIDGenerator.
-// ExampleTimeEventIDGenerator 展示 TimeEventIDGenerator 的使用方法。
-func ExampleTimeEventIDGenerator() {
+// TestTimeEventIDGenerator_Demo demonstrates the usage of TimeEventIDGenerator.
+// TestTimeEventIDGenerator_Demo 展示 TimeEventIDGenerator 的使用方法。
+func TestTimeEventIDGenerator_Demo(t *testing.T) {
 	generator := monitor.NewTimeEventIDGenerator("20060102150405")
 	jobSpec := monitor.JobSpec{
 		JobID:   "my-jobs-456",
@@ -350,8 +349,7 @@ func ExampleTimeEventIDGenerator() {
 	}
 
 	eventID := generator.NextID(jobSpec)
-	println(eventID)
-	// Output: my-jobs-456_my-job_20240115143000 (timestamp will vary)
+	assert.NotEmpty(t, eventID, "time-based event ID should not be empty")
 }
 
 // TestEventIDGeneratorInterface tests the monitor.EventIDGenerator interface.

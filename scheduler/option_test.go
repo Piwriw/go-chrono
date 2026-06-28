@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/piwriw/go-chrono/common"
@@ -530,7 +531,7 @@ func TestOptionConstants(t *testing.T) {
 func ExampleWithAliasMode() {
 	opts := &SchedulerOptions{}
 	WithAliasMode()(opts)
-	println(opts.alias.Enable())
+	fmt.Println(opts.alias.Enable())
 	// Output: true
 }
 
@@ -539,7 +540,7 @@ func ExampleWithAliasMode() {
 func ExampleWithLimit() {
 	opts := &SchedulerOptions{}
 	WithLimit(100)(opts)
-	println(opts.limit.Limit)
+	fmt.Println(opts.limit.Limit)
 	// Output: 100
 }
 
@@ -548,6 +549,6 @@ func ExampleWithLimit() {
 func ExampleWithWebMonitor() {
 	opts := &SchedulerOptions{}
 	WithWebMonitor(":8080")(opts)
-	println(opts.webMonitor.Address)
+	fmt.Println(opts.webMonitor.Address)
 	// Output: :8080
 }

@@ -81,7 +81,9 @@ func TestTwoJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	intervalJob2 := jobs.NewIntervalJob(time.Second*20).
 		Names("TestTwoJob").
 		Task(task2, 12).Watch(func(event common.JobWatchInterface) {
@@ -127,7 +129,9 @@ func TestTimeOutJobPanic(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	go scheduler.Watch()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
@@ -162,7 +166,9 @@ func TestTimeOutJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	go scheduler.Watch()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
@@ -195,7 +201,9 @@ func TestWithNoTimeOutJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	go scheduler.Watch()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
@@ -227,7 +235,9 @@ func TestValidateTimeOutJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	if err != nil {
 		t.Fatal(err)
@@ -261,7 +271,9 @@ func TestWatchJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	go scheduler.Watch()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
@@ -288,7 +300,9 @@ func TestMonthlyJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -314,7 +328,9 @@ func TestWeeklyJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -339,7 +355,9 @@ func TestDailyJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	if err != nil {
 		t.Fatal(err)
@@ -404,7 +422,9 @@ func TestIntervalJob(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	go scheduler.Watch()
 	nextRun, err := gocronJob.NextRun()
 	if err != nil {
@@ -436,7 +456,9 @@ func TestIntervalJobRe(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	go func() {
 		time.Sleep(10 * time.Second)
 		if err := scheduler.RemoveJob(gocronJob.ID().String()); err != nil {
@@ -478,7 +500,9 @@ func TestOnceJob(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	if err != nil {
 		t.Fatal(err)
@@ -509,7 +533,9 @@ func TestMonitor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	if err != nil {
 		t.Fatal(err)
@@ -543,7 +569,9 @@ func TestDefaultHooks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -592,7 +620,9 @@ func TestDayTimeToCron(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -619,7 +649,9 @@ func TestWebMonitor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 
 	// block until you are ready to shut down
 	select {
@@ -655,7 +687,9 @@ func TestLimit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	nextRun, err := gocronJob.NextRun()
 	t.Log("First Task", gocronJob.ID(), "TASK NAME", gocronJob.Name(), "nextRunTime", nextRun.Format("2006-01-02 15:04:05"))
 	// block until you are ready to shut down
@@ -682,7 +716,9 @@ func TestWeb(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 
 	// block until you are ready to shut down
 	select {
@@ -712,7 +748,9 @@ func TestWithPrometheus(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	go scheduler.Watch()
 
 	// block until you are ready to shut down
@@ -743,7 +781,9 @@ func TestIntervalJobClient(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	scheduler.Start()
+	if err := scheduler.Start(); err != nil {
+			t.Fatal(err)
+		}
 	go scheduler.Watch()
 
 	// block until you are ready to shut down

@@ -2,6 +2,7 @@ package monitor
 
 import (
 	"errors"
+	"fmt"
 	"testing"
 	"time"
 
@@ -575,15 +576,15 @@ func TestCronJobDefaultHooks(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			t.Parallel()
 
-			// Create jobs and add initial hooks
-			// 创建任务并添加初始钩子
+			// Create jobs and add initial hooks via exported methods
+			// 创建任务并通过导出的方法添加初始钩子
 			job := jobs.NewCronJob("* * * * *")
 
-			// Note: addHooks is unexported, skip direct hook addition in test
-			// 注：addHooks 是未导出的方法，在测试中跳过直接添加钩子
-			// Hooks are tested through the DefaultHooks() method instead
-			// 钩子通过 DefaultHooks() 方法进行测试
-			_ = tt.initialHookCount // Suppress unused variable warning / 抑制未使用变量警告
+			// Add initial hooks using exported BeforeJobRuns/AfterJobRuns methods
+			// 使用导出的 BeforeJobRuns/AfterJobRuns 方法添加初始钩子
+			for i := 0; i < tt.initialHookCount; i++ {
+				job.BeforeJobRuns(func(jobID uuid.UUID, jobName string) {})
+			}
 
 			// Call DefaultHooks
 			// 调用默认钩子
@@ -1025,13 +1026,16 @@ func ExampleNewCronJob() {
 	// Create a new cron jobs
 	// 创建新的 cron 任务
 	job := jobs.NewCronJob("0 9 * * *")
-	println(job.Expr)
+	fmt.Println(job.Expr)
 	// Output: 0 9 * * *
 }
 
-// ExampleCronJobChaining demonstrates method chaining for CronJob.
-// ExampleCronJobChaining 展示 CronJob 的方法链式调用。
-func ExampleCronJobChaining() {
+// TestCronJobChainingDemo demonstrates method chaining for CronJob.
+// Named as a regular test (not Example) to avoid Go's example-naming convention
+// that would resolve "Chaining" as a member of CronJob.
+// TestCronJobChainingDemo 演示 CronJob 的方法链式调用。
+// 作为普通测试命名(而非 Example),避免 Go 把 "Chaining" 当作 CronJob 成员。
+func TestCronJobChainingDemo(t *testing.T) {
 	// Create and configure a cron jobs using method chaining
 	// 使用方法链式调用创建和配置 cron 任务
 	job := jobs.NewCronJob("* * * * *").
@@ -1039,13 +1043,9 @@ func ExampleCronJobChaining() {
 		Alias("backup").
 		Names("Daily Backup")
 
-	println(job.Expr)
-	println(job.Ali)
-	println(job.Name)
-	// Output:
-	// 0 9 * * *
-	// backup
-	// Daily Backup
+	assert.Equal(t, "0 9 * * *", job.Expr)
+	assert.Equal(t, "backup", job.Ali)
+	assert.Equal(t, "Daily Backup", job.Name)
 }
 
 // ExampleDayTimeToCron demonstrates the usage of DayTimeToCron.
@@ -1055,7 +1055,7 @@ func ExampleDayTimeToCron() {
 	// 将时间转换为每日 cron 表达式
 	t := time.Date(2024, 1, 1, 9, 30, 0, 0, time.UTC)
 	expr := jobs.DayTimeToCron(t)
-	println(expr)
+	fmt.Println(expr)
 	// Output: 30 9 * * *
 }
 
@@ -1066,7 +1066,7 @@ func ExampleWeekTimeToCron() {
 	// 将时间和星期转换为每周 cron 表达式
 	t := time.Date(2024, 1, 1, 9, 30, 0, 0, time.UTC)
 	expr := jobs.WeekTimeToCron(t, time.Monday)
-	println(expr)
+	fmt.Println(expr)
 	// Output: 30 9 * * 1
 }
 
@@ -1077,6 +1077,6 @@ func ExampleMonthTimeToCron() {
 	// 将时间和月份转换为每月 cron 表达式
 	t := time.Date(2024, 1, 1, 9, 30, 0, 0, time.UTC)
 	expr := jobs.MonthTimeToCron(t, time.January)
-	println(expr)
+	fmt.Println(expr)
 	// Output: 30 9 * 1 *
 }

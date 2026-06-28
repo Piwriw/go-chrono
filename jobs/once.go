@@ -80,7 +80,7 @@ func NewOnceJob(workTimes ...time.Time) *OnceJob {
 //	*OnceJob - The one-time jobs for method chaining / 支持链式调用的一次性任务
 func (c *OnceJob) AtTimes(workTimes ...time.Time) *OnceJob {
 	c.WorkTime = workTimes
-	return nil
+	return c
 }
 
 // Alias sets the alias for the OnceJob.

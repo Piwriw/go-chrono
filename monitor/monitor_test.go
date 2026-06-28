@@ -1016,12 +1016,12 @@ func TestRecordRetryEvent(t *testing.T) {
 	t.Run("implements circular buffer at max retry history", func(t *testing.T) {
 		t.Parallel()
 
-		monitor := NewDefaultSchedulerMonitor()
+		const maxRetryHistory = 100
+		monitor := NewDefaultSchedulerMonitor(WithMaxRetryHistory(maxRetryHistory))
 		jobID := uuid.New().String()
 
 		// Add more than maxRetryHistory (100) events
 		// 添加超过 maxRetryHistory (100) 个事件
-		const maxRetryHistory = 100
 		for i := 0; i < maxRetryHistory+5; i++ {
 			event := &retry.RetryEvent{
 				EventID:         fmt.Sprintf("retry-%d", i),

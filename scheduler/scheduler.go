@@ -55,18 +55,24 @@ type Scheduler struct {
 	// Alias to jobID mapping
 	// 别名到 jobID 的映射
 	aliasMap map[string]string
+	// aliasMu protects aliasMap.
+	// aliasMu 保护 aliasMap。
+	aliasMu sync.RWMutex
 	// JobID to watch function mapping
 	// jobID 到监听函数的映射
 	watchFuncMap map[string]func(event monitor.JobWatchInterface)
-	// Mutex to protect watchFuncMap
-	// 用于保护 watchFuncMap 的互斥锁
-	mu sync.Mutex
+	// watchMu protects watchFuncMap.
+	// watchMu 保护 watchFuncMap。
+	watchMu sync.RWMutex
 	// Job type map
 	// 任务类型映射
 	jobTypeMap map[string]jobs.JobType
 	// Mutex to protect jobTypeMap
 	// 用于保护 jobTypeMap 的互斥锁
 	jobTypeMu sync.Mutex
+	// limitMu protects the Limit counter in schOptions.limit.
+	// limitMu 保护 schOptions.limit 中的 Limit 计数器。
+	limitMu sync.Mutex
 	// Scheduler options
 	// 调度器选项
 	schOptions *SchedulerOptions
@@ -313,7 +319,7 @@ func (s *Scheduler) Watch() {
 			jobID := e.GetJobID()
 			// Get watch function for this jobs
 			// 获取此任务的监听函数
-			fn, ok := s.watchFuncMap[jobID]
+			fn, ok := s.getWatchFunc(jobID)
 			if !ok {
 				slog.Error("chrono:jobs not found", slog.Any("jobID", e.GetJobID()))
 				continue
@@ -574,22 +580,29 @@ func NewScheduler(ctx context.Context, schedMonitor monitor.SchedulerMonitor, op
 
 // Start starts the scheduler.
 // Start 启动调度器。
-func (s *Scheduler) Start() {
+//
+// Returns:
+//
+//	error - Error if web monitor or prometheus endpoint fails to start / 当 Web 监控器或 Prometheus 端点启动失败时返回错误
+func (s *Scheduler) Start() error {
 	// Start web monitor if Enabled
 	// 如果启用，则启动Web监控器
 	if s.Enable(common.WebMonitorOptionName) {
 		if err := monitor.NewWebMonitor(s, s.schedMonitor, s.schOptions.webMonitor.Address).Start(); err != nil {
-			panic("chrono:failed to start web monitor")
+			return fmt.Errorf("chrono:failed to start web monitor: %w", err)
 		}
 	}
 	// Start Prometheus endpoint if Enabled
 	// 如果启用，则启动Prometheus端点
 	if s.Enable(common.PrometheusOptionName) {
-		monitor.StartPrometheusEndpoint(s.schOptions.prometheus.Address)
+		if err := monitor.StartPrometheusEndpoint(s.schOptions.prometheus.Address); err != nil {
+			return fmt.Errorf("chrono:failed to start prometheus endpoint: %w", err)
+		}
 	}
 	// Start the scheduler
 	// 启动调度器
 	s.scheduler.Start()
+	return nil
 }
 
 // Stop stops the scheduler.
@@ -627,7 +640,7 @@ func (s *Scheduler) RemoveJob(jobID string) error {
 	// Increment limit if limit option is Enabled
 	// 如果启用限制选项，则增加限制
 	if s.Enable(common.LimitOptionName) {
-		if err := s.incLimit(); err != nil {
+		if err := s.releaseLimitSlot(); err != nil {
 			return err
 		}
 	}
@@ -666,15 +679,21 @@ func (s *Scheduler) RemoveJobByName(name string) error {
 	}
 	// Find and remove jobs by name
 	// 按名称查找并移除任务
+	removed := 0
 	for _, job := range jobs {
 		if job.Name() == name {
+			// RemoveJob already cleans up jobType, alias, and watchFunc internally.
+			// RemoveJob 内部已清理 jobType、alias 和 watchFunc。
 			if err := s.RemoveJob(job.ID().String()); err != nil {
 				return err
 			}
-			s.removeJobType(job.ID().String())
+			removed++
 		}
 	}
-	return fmt.Errorf("jobs with name %s not found", name)
+	if removed == 0 {
+		return fmt.Errorf("chrono:jobs with name %s not found", name)
+	}
+	return nil
 }
 
 // RemoveJobByAlias removes a jobs by alias.
@@ -696,13 +715,13 @@ func (s *Scheduler) RemoveJobByAlias(alias string) error {
 	// Increment limit if limit option is Enabled
 	// 如果启用限制选项，则增加限制
 	if s.Enable(common.LimitOptionName) {
-		if err := s.incLimit(); err != nil {
+		if err := s.releaseLimitSlot(); err != nil {
 			return err
 		}
 	}
 	// Get jobID by alias
 	// 通过别名获取任务ID
-	jobID, ok := s.aliasMap[alias]
+	jobID, ok := s.getJobIDByAlias(alias)
 	if !ok {
 		return fmt.Errorf("chrono:alias %s not found", alias)
 	}
@@ -802,6 +821,34 @@ func (s *Scheduler) RunJobNowByAlias(alias string) error {
 	return job.RunNow()
 }
 
+// wrapTaskWithRetryIfNeeded wraps a task function with retry logic based on per-job
+// or scheduler-level retry configuration. Returns the original function unchanged
+// when retry is not enabled or the input cannot be cast to func() error.
+// wrapTaskWithRetryIfNeeded 根据任务级或调度器级重试配置包装任务函数。
+// 当未启用重试或入参无法转换为 func() error 时,原样返回。
+//
+// Parameters:
+//
+//	taskFunc - The original task function / 原始任务函数
+//	jobID    - The jobs ID / 任务ID
+//	jobName  - The jobs name / 任务名称
+//	jobOpts  - The per-job options (may be nil) / 任务级选项(可为 nil)
+func (s *Scheduler) wrapTaskWithRetryIfNeeded(taskFunc any, jobID, jobName string, jobOpts *common.JobOptions) any {
+	fn, ok := taskFunc.(func() error)
+	if !ok {
+		return taskFunc
+	}
+	if jobOpts != nil && jobOpts.IsRetryEnabled() && jobOpts.GetRetryConfig() != nil {
+		return WrapTaskWithRetry(fn, jobID, jobName, jobOpts)
+	}
+	if s.Enable(common.RetryOptionName) && s.schOptions.retry != nil && s.schOptions.retry.Config != nil {
+		opts := NewJobOptions()
+		opts.SetRetryConfig(s.schOptions.retry.Config)
+		return WrapTaskWithRetry(fn, jobID, jobName, opts)
+	}
+	return taskFunc
+}
+
 // addJobType adds a jobs type mapping.
 // addJobType 添加任务类型映射。
 //
@@ -863,8 +910,8 @@ func (s *Scheduler) getJobType(jobID string) jobs.JobType {
 // addAlias adds an alias for a jobs.
 // addAlias 为任务添加别名。
 func (s *Scheduler) addAlias(alias string, jobID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.aliasMu.Lock()
+	defer s.aliasMu.Unlock()
 	if alias == "" {
 		slog.Warn("chrono:alias is empty", "alias", alias)
 		return
@@ -879,11 +926,11 @@ func (s *Scheduler) addAlias(alias string, jobID string) {
 // removeAlias removes an alias.
 // removeAlias 移除别名。
 func (s *Scheduler) removeAlias(alias string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.aliasMu.Lock()
+	defer s.aliasMu.Unlock()
 	if _, exists := s.aliasMap[alias]; exists {
 		delete(s.aliasMap, alias)
-		slog.Info("chrono:alias  removed", "alias", alias)
+		slog.Info("chrono:alias removed", "alias", alias)
 	} else {
 		slog.Warn("chrono:alias not found in aliasMap", "alias", alias)
 	}
@@ -892,8 +939,8 @@ func (s *Scheduler) removeAlias(alias string) {
 // removeAliasByJobID removes an alias by jobID.
 // removeAliasByJobID 通过 jobID 移除别名。
 func (s *Scheduler) removeAliasByJobID(jobID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.aliasMu.Lock()
+	defer s.aliasMu.Unlock()
 	for alias, jid := range s.aliasMap {
 		if jid == jobID {
 			delete(s.aliasMap, alias)
@@ -904,11 +951,29 @@ func (s *Scheduler) removeAliasByJobID(jobID string) {
 	slog.Warn("chrono:alias not found for jobID", "jobID", jobID)
 }
 
+// getJobIDByAlias looks up a jobID by alias under a read lock.
+// getJobIDByAlias 在读锁保护下按别名查询 jobID。
+//
+// Parameters:
+//
+//	alias - The alias to look up / 要查询的别名
+//
+// Returns:
+//
+//	string - The jobID / 任务 ID
+//	bool   - True if found / 找到返回 true
+func (s *Scheduler) getJobIDByAlias(alias string) (string, bool) {
+	s.aliasMu.RLock()
+	defer s.aliasMu.RUnlock()
+	jobID, ok := s.aliasMap[alias]
+	return jobID, ok
+}
+
 // addWatchFunc adds a watch function for a jobs.
 // addWatchFunc 为任务添加监听函数。
 func (s *Scheduler) addWatchFunc(jobID string, fn func(event monitor.JobWatchInterface)) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.watchMu.Lock()
+	defer s.watchMu.Unlock()
 	if jobID == "" {
 		slog.Warn("chrono:jobID is empty", "jobID", jobID)
 		return
@@ -923,8 +988,8 @@ func (s *Scheduler) addWatchFunc(jobID string, fn func(event monitor.JobWatchInt
 // removeWatchFunc removes a watch function for a jobs.
 // removeWatchFunc 移除任务的监听函数。
 func (s *Scheduler) removeWatchFunc(jobID string) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
+	s.watchMu.Lock()
+	defer s.watchMu.Unlock()
 	if _, exists := s.watchFuncMap[jobID]; exists {
 		delete(s.watchFuncMap, jobID)
 		slog.Info("chrono:Watch function removed", "jobID", jobID)
@@ -933,55 +998,70 @@ func (s *Scheduler) removeWatchFunc(jobID string) {
 	}
 }
 
-// CheckLimit checks if the limit is reached.
-// CheckLimit 检查是否达到限制。
+// getWatchFunc returns the watch function for a jobs under a read lock.
+// getWatchFunc 在读锁保护下返回任务的监听函数。
+func (s *Scheduler) getWatchFunc(jobID string) (func(event monitor.JobWatchInterface), bool) {
+	s.watchMu.RLock()
+	defer s.watchMu.RUnlock()
+	fn, ok := s.watchFuncMap[jobID]
+	return fn, ok
+}
+
+// schedulerWatchFunc returns the scheduler-level watch function configured via
+// WithWatch. It panics-safe-casts the stored interface{}; on type mismatch it
+// returns the empty watch function so the jobs still emits events.
+// schedulerWatchFunc 返回通过 WithWatch 配置的调度器级监听函数。
+// 当存储值的类型不匹配时返回空函数,以保证任务事件仍能正常发送。
+func (s *Scheduler) schedulerWatchFunc() func(event monitor.JobWatchInterface) {
+	if s.schOptions == nil || s.schOptions.watch == nil || s.schOptions.watch.WatchFunc == nil {
+		return defaultWatch
+	}
+	fn, ok := s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface))
+	if !ok || fn == nil {
+		return defaultWatch
+	}
+	return fn
+}
+
+// CheckLimit checks if a new jobs can be added under the configured limit.
+// It atomically decrements the remaining quota when allowed.
+// CheckLimit 在配置的限制下检查能否添加新任务。允许时原子地扣减剩余配额。
 //
 // Returns:
 //
-//	bool - True if limit is not reached, false otherwise / 如果未达到限制返回true，否则返回false
+//	bool - True if a new jobs can be added / 允许添加时返回 true
 func (s *Scheduler) CheckLimit() bool {
 	// If limit option is disabled, return true (unlimited)
 	// 如果限制选项未启用，返回true（无限制）
 	if !s.Enable(common.LimitOptionName) {
 		return true
 	}
-	// Decrease limit
-	// 减少限制
-	if err := s.decLimit(); err != nil {
+	s.limitMu.Lock()
+	defer s.limitMu.Unlock()
+	// Reject when no quota is left; otherwise take one slot atomically.
+	// 没有剩余配额时拒绝;否则原子地占用一个名额。
+	if s.schOptions.limit.Limit <= 0 {
 		return false
 	}
-	return s.schOptions.limit.Limit >= 0
-}
-
-// incLimit increases the limit.
-// incLimit 增加限制。
-//
-// Returns:
-//
-//	error - Error if limit option is disabled / 如果限制选项未启用的错误
-func (s *Scheduler) incLimit() error {
-	// Check if limit option is Enabled
-	// 检查是否启用限制选项
-	if !s.Enable(common.LimitOptionName) {
-		return common.ErrDisEnableLimit
-	}
-	s.schOptions.limit.Limit++
-	return nil
-}
-
-// decLimit decreases the limit.
-// decLimit 减少限制。
-//
-// Returns:
-//
-//	error - Error if limit option is disabled / 如果限制选项未启用的错误
-func (s *Scheduler) decLimit() error {
-	// Check if limit option is Enabled
-	// 检查是否启用限制选项
-	if !s.Enable(common.LimitOptionName) {
-		return common.ErrDisEnableLimit
-	}
 	s.schOptions.limit.Limit--
+	return true
+}
+
+// releaseLimitSlot returns one slot to the limit quota. Called when a jobs is removed.
+// releaseLimitSlot 归还一个名额到限制配额。删除任务时调用。
+//
+// Returns:
+//
+//	error - Error if limit option is disabled / 如果限制选项未启用的错误
+func (s *Scheduler) releaseLimitSlot() error {
+	// Check if limit option is Enabled
+	// 检查是否启用限制选项
+	if !s.Enable(common.LimitOptionName) {
+		return common.ErrDisEnableLimit
+	}
+	s.limitMu.Lock()
+	defer s.limitMu.Unlock()
+	s.schOptions.limit.Limit++
 	return nil
 }
 
@@ -1067,7 +1147,7 @@ func (s *Scheduler) GetJobLastTimeByAlias(alias string) (*time.Time, error) {
 	}
 	// Get jobID by alias
 	// 通过别名获取任务ID
-	jobID, ok := s.aliasMap[alias]
+	jobID, ok := s.getJobIDByAlias(alias)
 	if !ok {
 		return nil, common.ErrFoundAlias
 	}
@@ -1128,7 +1208,7 @@ func (s *Scheduler) GetJobNextTimeByAlias(alias string) (*time.Time, error) {
 	if !s.Enable(common.AliasOptionName) {
 		return nil, common.ErrDisEnableAlias
 	}
-	jobID, ok := s.aliasMap[alias]
+	jobID, ok := s.getJobIDByAlias(alias)
 	if !ok {
 		return nil, common.ErrFoundAlias
 	}
@@ -1186,7 +1266,7 @@ func (s *Scheduler) GetJobLastAndNextByAlias(alias string) (*time.Time, *time.Ti
 	if !s.Enable(common.AliasOptionName) {
 		return nil, nil, common.ErrDisEnableAlias
 	}
-	jobID, ok := s.aliasMap[alias]
+	jobID, ok := s.getJobIDByAlias(alias)
 	if !ok {
 		return nil, nil, common.ErrFoundAlias
 	}
@@ -1296,7 +1376,7 @@ func (s *Scheduler) GetJobByAlias(alias string) (gocron.Job, error) {
 	}
 	// Get jobID by alias
 	// 通过别名获取任务ID
-	jobID, ok := s.aliasMap[alias]
+	jobID, ok := s.getJobIDByAlias(alias)
 	if !ok {
 		return nil, fmt.Errorf("chrono:alias %s not found", alias)
 	}
@@ -1324,8 +1404,8 @@ func (s *Scheduler) GetJobByIDOrAlias(identifier string) (gocron.Job, error) {
 	// Fallback to alias lookup if alias feature is Enabled
 	// 如果启用别名功能，回退到别名查找
 	if s.Enable(common.AliasOptionName) {
-		if jobID, exists := s.aliasMap[identifier]; exists {
-			return s.GetJobByAlias(jobID)
+		if _, exists := s.getJobIDByAlias(identifier); exists {
+			return s.GetJobByAlias(identifier)
 		}
 	}
 
@@ -1416,9 +1496,10 @@ func (s *Scheduler) AddCronJob(job any) (gocron.Job, error) {
 	}
 	// Create cron jobs
 	// 创建cron任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(cronJob.TaskFunc, cronJob.ID, cronJob.Name, cronJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.CronJob(cronJob.Expr, false), // 使用 cron 表达式
-		gocron.NewTask(cronJob.TaskFunc),    // 任务函数
+		gocron.NewTask(taskFunc),            // 任务函数
 		opts...,
 	)
 	if err != nil {
@@ -1438,7 +1519,7 @@ func (s *Scheduler) AddCronJob(job any) (gocron.Job, error) {
 		if cronJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(cronJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	return jobInstance, nil
 }
@@ -1549,9 +1630,10 @@ func (s *Scheduler) AddOnceJob(job any) (gocron.Job, error) {
 	}
 	// Create once jobs
 	// 创建单次任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(onceJob.TaskFunc, onceJob.ID, onceJob.Name, onceJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.OneTimeJob(gocron.OneTimeJobStartDateTimes(onceJob.WorkTime...)),
-		gocron.NewTask(onceJob.TaskFunc),
+		gocron.NewTask(taskFunc),
 		opts...,
 	)
 	if err != nil {
@@ -1566,7 +1648,7 @@ func (s *Scheduler) AddOnceJob(job any) (gocron.Job, error) {
 		if onceJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(onceJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	// Add alias if alias option is Enabled
 	// 如果启用别名选项，则添加别名
@@ -1673,9 +1755,10 @@ func (s *Scheduler) AddIntervalJob(job any) (gocron.Job, error) {
 
 	// Create interval jobs
 	// 创建间隔任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(intervalJob.TaskFunc, intervalJob.ID, intervalJob.Name, intervalJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.DurationJob(intervalJob.Interval),
-		gocron.NewTask(intervalJob.TaskFunc),
+		gocron.NewTask(taskFunc),
 		opts...,
 	)
 	if err != nil {
@@ -1690,7 +1773,7 @@ func (s *Scheduler) AddIntervalJob(job any) (gocron.Job, error) {
 		if intervalJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(intervalJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	// Add alias if alias option is Enabled
 	// 如果启用别名选项，则添加别名
@@ -1796,9 +1879,10 @@ func (s *Scheduler) AddDailyJob(job any) (gocron.Job, error) {
 	}
 	// Create daily jobs
 	// 创建每日任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(dailyJob.TaskFunc, dailyJob.ID, dailyJob.Name, dailyJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.DailyJob(dailyJob.Interval, dailyJob.AtTimes),
-		gocron.NewTask(dailyJob.TaskFunc),
+		gocron.NewTask(taskFunc),
 		opts...,
 	)
 	if err != nil {
@@ -1813,7 +1897,7 @@ func (s *Scheduler) AddDailyJob(job any) (gocron.Job, error) {
 		if dailyJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(dailyJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	// Add alias if alias option is Enabled
 	// 如果启用别名选项，则添加别名
@@ -1919,9 +2003,10 @@ func (s *Scheduler) AddWeeklyJob(job any) (gocron.Job, error) {
 	}
 	// Create weekly jobs
 	// 创建每周任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(weeklyJob.TaskFunc, weeklyJob.ID, weeklyJob.Name, weeklyJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.WeeklyJob(weeklyJob.Interval, weeklyJob.DaysOfTheWeek, weeklyJob.WorkTimes),
-		gocron.NewTask(weeklyJob.TaskFunc),
+		gocron.NewTask(taskFunc),
 		opts...,
 	)
 	if err != nil {
@@ -1936,7 +2021,7 @@ func (s *Scheduler) AddWeeklyJob(job any) (gocron.Job, error) {
 		if weeklyJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(weeklyJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	// Add alias if alias option is Enabled
 	// 如果启用别名选项，则添加别名
@@ -2042,9 +2127,10 @@ func (s *Scheduler) AddMonthlyJob(job any) (gocron.Job, error) {
 	}
 	// Create monthly jobs
 	// 创建每月任务
+	taskFunc := s.wrapTaskWithRetryIfNeeded(monthlyJob.TaskFunc, monthlyJob.ID, monthlyJob.Name, monthlyJob.JobOptions)
 	jobInstance, err := s.scheduler.NewJob(
 		gocron.MonthlyJob(monthlyJob.Interval, monthlyJob.DaysOfTheMonth, monthlyJob.AtTimes),
-		gocron.NewTask(monthlyJob.TaskFunc),
+		gocron.NewTask(taskFunc),
 		opts...,
 	)
 	if err != nil {
@@ -2059,7 +2145,7 @@ func (s *Scheduler) AddMonthlyJob(job any) (gocron.Job, error) {
 		if monthlyJob.WatchFunc != nil {
 			s.addWatchFunc(jobInstance.ID().String(), WatchFuncAdapter(monthlyJob.WatchFunc))
 		}
-		s.addWatchFunc(jobInstance.ID().String(), s.schOptions.watch.WatchFunc.(func(event monitor.JobWatchInterface)))
+		s.addWatchFunc(jobInstance.ID().String(), s.schedulerWatchFunc())
 	}
 	// Add alias if alias option is Enabled
 	// 如果启用别名选项，则添加别名

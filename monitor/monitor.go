@@ -173,7 +173,7 @@ type SchedulerMonitorOption func(*defaultSchedulerMonitor)
 //	func(*defaultSchedulerMonitor) - The scheduler monitor option / 调度器监控选项
 func WithMaxRecords(maxRecords int) func(*defaultSchedulerMonitor) {
 	return func(s *defaultSchedulerMonitor) {
-		if s.maxRecords <= 0 {
+		if maxRecords <= 0 {
 			s.maxRecords = defaultMaxRecords
 			return
 		}
@@ -625,6 +625,7 @@ func NewDefaultSchedulerMonitor(opts ...SchedulerMonitorOption) *defaultSchedule
 		jobChan:         make(chan JobWatchInterface, 100),
 		jobRecord:       make(map[string]MonitorJobSpec),
 		eventIDCli:      defaultEventIDGenerator,
+		maxRecords:      defaultMaxRecords,
 		maxRetryHistory: defaultMaxRetryHistory,
 		retryHistory:    make(map[string][]*retry.RetryEvent),
 	}
@@ -689,8 +690,6 @@ func (s *defaultSchedulerMonitor) RecordJobTiming(startTime, endTime time.Time, 
 //	status    - The jobs status / 任务状态
 //	err       - The jobs error / 任务错误
 func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime time.Time, id uuid.UUID, name string, tags []string, status gocron.JobStatus, err error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
 	slog.Debug("chrono:RecordJobTimingWithStatus", "JobID", id, "JobName", name, "startTime", startTime.Format(time.DateTime),
 		"endTime", endTime.Format(time.DateTime), "duration", endTime.Sub(startTime), "status", status, "err", err)
 	jobSpec := JobSpec{
@@ -699,14 +698,22 @@ func (s *defaultSchedulerMonitor) RecordJobTimingWithStatus(startTime, endTime t
 		Tags:    tags,
 	}
 
+	// eventIDCli must be read under lock to avoid races with WithEventIDGenerator.
+	// eventIDCli 必须在锁内读取,避免与 WithEventIDGenerator 竞争。
+	s.mu.Lock()
+	eventID := s.eventIDCli.NextID(jobSpec)
+	s.mu.Unlock()
+
 	newEvent := &JobEvent{
-		EventID:   s.eventIDCli.NextID(jobSpec),
+		EventID:   eventID,
 		StartTime: &startTime,
 		EndTime:   &endTime,
 		Status:    status,
 		Err:       err,
 	}
 
+	// UpdateJobEvents acquires mu internally; do not hold it here.
+	// UpdateJobEvents 内部会获取 mu,这里不能持有锁。
 	s.UpdateJobEvents(id, name, newEvent)
 	// Create MonitorJobSpec containing the new event
 	// 创建包含新事件的 MonitorJobSpec
